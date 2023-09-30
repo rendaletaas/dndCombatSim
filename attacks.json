@@ -1,0 +1,132 @@
+[
+    {
+        "name": "handaxe",
+        "ability": "dex",
+        "damagedice": ["dex 1d6 slashing"],
+        "type": ["handaxe", "simple_weapon", "simple_melee_weapon"],
+        "hitmod": 0,
+        "multi": 1,
+        "properties": ["light", "monk_weapon"]
+    },
+    {
+        "name": "longsword",
+        "ability": "str",
+        "damagedice": ["str 1d8 slashing"],
+        "type": ["longsword", "martial_weapon", "martial_melee_weapon"],
+        "hitmod": 0,
+        "multi": 1
+    },
+    {
+        "name": "longsword_2h",
+        "ability": "str",
+        "damagedice": ["str 1d10 slashing"],
+        "type": ["longsword", "martial_weapon", "martial_melee_weapon"],
+        "hitmod": 0,
+        "multi": 1
+    },
+    {
+        "name": "quarterstaff",
+        "ability": "str",
+        "damagedice": ["str 1d6 bludgeoning"],
+        "type": ["quarterstaff", "simple_weapon", "simple_melee_weapon"],
+        "hitmod": 0,
+        "multi": 1,
+        "properties": ["monk_weapon"]
+    },
+    {
+        "name": "quarterstaff_2h",
+        "ability": "str",
+        "damagedice": ["str 1d8 bludgeoning"],
+        "type": ["quarterstaff", "simple_weapon", "simple_melee_weapon"],
+        "hitmod": 0,
+        "multi": 1,
+        "properties": ["monk_weapon"]
+    },
+    {
+        "name": "quarterstaff_shillelagh",
+        "ability": "wis",
+        "damagedice": ["wis 1d8 m_bludgeoning"],
+        "type": ["quarterstaff", "simple_weapon", "simple_melee_weapon"],
+        "hitmod": 0,
+        "multi": 1
+    },
+    {
+        "name": "scimitar",
+        "ability": "str",
+        "damagedice": ["str 1d6 piercing"],
+        "type": ["shortsword", "martial_weapon", "martial_melee_weapon"],
+        "hitmod": 0,
+        "multi": 1,
+        "properties": ["finesse", "light", "monk_weapon"]
+    },
+    {
+        "name": "shortsword",
+        "ability": "str",
+        "damagedice": ["str 1d6 piercing"],
+        "type": ["shortsword", "martial_weapon", "martial_melee_weapon"],
+        "hitmod": 0,
+        "multi": 1,
+        "properties": ["finesse", "light", "monk_weapon"]
+    },
+    {
+        "name": "spear",
+        "ability": "str",
+        "damagedice": ["str 1d6 piercing"],
+        "type": ["spear", "simple_weapon", "simple_melee_weapon"],
+        "hitmod": 0,
+        "multi": 1
+    },
+    {
+        "name": "spear_2h",
+        "ability": "str",
+        "damagedice": ["str 1d8 piercing"],
+        "type": ["spear", "simple_weapon", "simple_melee_weapon"],
+        "hitmod": 0,
+        "multi": 1
+    },
+    {
+        "name": "unarmed",
+        "ability": "str",
+        "damagedice": ["str 1d1 bludgeoning"],
+        "type": ["all"],
+        "hitmod": 0,
+        "multi": 1,
+        "properties": ["monk_weapon"]
+    },
+    {
+        "name": "unarmed_4",
+        "ability": "str",
+        "damagedice": ["str 1d4 bludgeoning"],
+        "type": ["all"],
+        "hitmod": 0,
+        "multi": 1,
+        "properties": ["monk_weapon"]
+    },
+    {
+        "name": "unarmed_6",
+        "ability": "str",
+        "damagedice": ["str 1d6 bludgeoning"],
+        "type": ["all"],
+        "hitmod": 0,
+        "multi": 1,
+        "properties": ["monk_weapon"]
+    },
+    {
+        "name": "unarmed_8",
+        "ability": "str",
+        "damagedice": ["str 1d8 bludgeoning"],
+        "type": ["all"],
+        "hitmod": 0,
+        "multi": 1,
+        "properties": ["monk_weapon"]
+    },
+    {
+        "name": "unarmed_10",
+        "ability": "str",
+        "damagedice": ["str 1d10 bludgeoning"],
+        "type": ["all"],
+        "hitmod": 0,
+        "multi": 1,
+        "properties": ["monk_weapon"]
+    }
+]

@@ -1,0 +1,242 @@
+[
+    {
+        "name": "bjorn",
+        "team": "pc",
+        "stats": {
+            "level":4,
+            "class_level": {"monk":4},
+            "prof": 2,
+            "str": 14,
+            "dex": 15,
+            "con": 17,
+            "int": 12,
+            "wis": 12,
+            "cha": 8,
+            "skills": ["stealth", "insight", "perception"],
+            "ac": 15,
+            "max_hp": 35,
+            "hit_dice": ["4d8"],
+            "saves": ["str", "dex"],
+            "speed": 40,
+            "tools": ["simple_weapon", "shortsword"]
+        },
+        "attacks": {
+            "handaxe": 16
+        },
+        "actions": {
+            "inc_category":["monk"]
+        }
+    },
+    {
+        "name": "sycamore",
+        "team": "pc",
+        "stats": {
+            "level":4,
+            "class_level": {"druid":4},
+            "prof": 2,
+            "str": 10,
+            "dex": 12,
+            "con": 13,
+            "int": 8,
+            "wis": 16,
+            "cha": 14,
+            "skills": ["nature", "insight", "medicine", "persuasion"],
+            "ac": 12,
+            "max_hp": 27,
+            "hit_dice": ["4d8"],
+            "saves": ["int", "wis"],
+            "speed": 30,
+            "spellcast": "wis",
+            "slots": {"1":4, "2":3}
+        },
+        "attacks": {
+            "quarterstaff": 16,
+            "quarterstaff_2h": 4,
+            "quarterstaff_shillelagh": 0
+        },
+        "actions": {
+            "inc_category":["druid"],
+            "inc_action":["cast_shillelagh"]
+        },
+        "bias": {
+            "cast_shillelagh":16
+        }
+    },
+    {
+        "name": "wolfie",
+        "team": "pc",
+        "stats": {
+            "level":4,
+            "class_level": {"fighter":4},
+            "prof": 2,
+            "str": 14,
+            "dex": 15,
+            "con": 15,
+            "int": 12,
+            "wis": 11,
+            "cha": 8,
+            "skills": ["stealth", "insight", "perception"],
+            "ac": 12,
+            "max_hp": 36,
+            "hit_dice": ["4d10"],
+            "saves": ["str", "con"],
+            "speed": 30,
+            "tools": ["light_armor", "medium_armor", "heavy_armor", "shield", "simple_weapon", "martial_weapon"]
+        },
+        "attacks": {
+            "longsword": 0,
+            "longsword_2h": 16
+        },
+        "actions": {
+            "inc_category":["fighter"]
+        }
+    },
+    {
+        "name": "squall",
+        "team": "pc",
+        "stats": {
+            "level":4,
+            "class_level": {"monk":4},
+            "prof": 2,
+            "str": 12,
+            "dex": 15,
+            "con": 13,
+            "int": 12,
+            "wis": 14,
+            "cha": 12,
+            "skills": ["acrobatics", "sleight_of_hand", "stealth"],
+            "ac": 14,
+            "max_hp": 27,
+            "hit_dice": ["4d8"],
+            "saves": ["str", "dex"],
+            "speed": 40,
+            "tools": ["simple_weapon", "shortsword"]
+        },
+        "attacks": {
+            "shortsword": 16
+        },
+        "actions": {
+            "inc_category":["monk"]
+        }
+    },
+    {
+        "name": "wynter",
+        "team": "pc",
+        "stats": {
+            "level":4,
+            "class_level": {"bard":4},
+            "prof": 2,
+            "str": 14,
+            "dex": 15,
+            "con": 15,
+            "int": 12,
+            "wis": 11,
+            "cha": 10,
+            "skills": ["acrobatics", "stealth", "insight", "perception"],
+            "ac": 13,
+            "max_hp": 31,
+            "hit_dice": ["4d8"],
+            "saves": ["dex", "cha"],
+            "speed": 30,
+            "spellcast": "cha",
+            "slots": {"1": 4, "2":3}
+        },
+        "attacks": {
+            "longsword": 16
+        },
+        "actions": {
+            "inc_category":["bard"]
+        }
+    },
+    {
+        "name": "indigo",
+        "team": "pc",
+        "stats": {
+            "level":4,
+            "class_level": {"fighter":1, "warlock":3},
+            "prof": 2,
+            "str": 6,
+            "dex": 17,
+            "con": 15,
+            "int": 12,
+            "wis": 8,
+            "cha": 16,
+            "skills": ["acrobatics", "sleight_of_hand", "stealth", "deception"],
+            "ac": 15,
+            "max_hp": 34,
+            "hit_dice": ["1d10", "3d8"],
+            "saves": ["str", "con"],
+            "speed": 30,
+            "spellcast": "cha",
+            "slots": {"2":2}
+        },
+        "attacks": {
+            "pact_longbow custom_attacks.json": 16
+        },
+        "actions": {
+            "inc_category":["fighter", "warlock"]
+        },
+        "property": {
+            "fighting_style": "archery",
+            "patron": "the_genie_dao",
+            "eldritch_invocations": ["devils_sight", "improved_pact_weapon"],
+            "pact_boon": "pact_of_the_blade"
+        },
+        "resource": ["genies_wrath"]
+    },
+
+
+
+
+    {
+        "name": "sailor",
+        "team": "ally",
+        "stats": {
+            "prof": 2,
+            "str": 12,
+            "dex": 12,
+            "con": 11,
+            "int": 9,
+            "wis": 10,
+            "cha": 9,
+            "ac": 12,
+            "max_hp": "2d8+2",
+            "speed": 30,
+            "tools": ["spear"]
+        },
+        "attacks": {
+            "spear_2h": 16
+        },
+        "actions": {},
+        "instances": 3
+    },
+
+
+
+
+
+    {
+        "name": "lesser_water_elemental",
+        "team": "enemy",
+        "stats": {
+            "prof": 2,
+            "str": 16,
+            "dex": 12,
+            "con": 16,
+            "int": 5,
+            "wis": 10,
+            "cha": 8,
+            "ac": 12,
+            "max_hp": "6d8+18",
+            "speed": 30,
+            "imm": ["poison"],
+            "res": ["acid", "bludgeoning", "piercing", "slashing"],
+            "condimm": ["exhaustion", "grappled", "paralyzed", "petrified", "poisoned", "prone", "restrained", "unconscious"]
+        },
+        "attacks": {
+            "slam custom_attacks.json": 16
+        },
+        "actions": {},
+        "instances": 3
+    }
+]

@@ -1,0 +1,10 @@
+{
+    "shillelagh":{
+        "level": 0,
+        "school": "enchantment",
+        "cast": "regular",
+        "target": ["self"],
+        "concentration": false,
+        "duration": "1 minute"
+    }
+}

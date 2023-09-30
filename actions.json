@@ -1,0 +1,260 @@
+{
+    "default": {
+        "attack":{
+            "bias":16,
+            "type":"regular",
+            "targets":["enemy"],
+            "handle":"attack"
+        },
+        "climb":{
+            "bias":0,
+            "type":"movement",
+            "handle":"move"
+        },
+        "crawl":{
+            "bias":0,
+            "type":"movement",
+            "handle":"move"
+        },
+        "dash":{
+            "bias":0,
+            "type":"regular",
+            "handle":"stat"
+        },
+        "death_save": {
+            "bias":0,
+            "type":"regular",
+            "handle":"special"
+        },
+        "disengage":{
+            "bias":0,
+            "type":"regular",
+            "handle":"stat"
+        },
+        "dodge":{
+            "bias":0,
+            "type":"regular",
+            "handle":"stat"
+        },
+        "drop_prone":{
+            "bias":0,
+            "type":"movement",
+            "handle":"move"
+        },
+        "escape_grapple":{
+            "bias":0,
+            "type":"regular",
+            "targets":["enemy"],
+            "handle":"contest"
+        },
+        "grapple":{
+            "bias":0,
+            "type":"regular",
+            "targets":["enemy"],
+            "handle":"attack"
+        },
+        "help":{
+            "bias":0,
+            "type":"regular",
+            "targets":["ally"],
+            "handle":"stat"
+        },
+        "hide":{
+            "bias":0,
+            "type":"regular",
+            "handle":"stat"
+        },
+        "high_jump":{
+            "bias":0,
+            "type":"movement",
+            "handle":"move"
+        },
+        "long_jump":{
+            "bias":0,
+            "type":"movement",
+            "handle":"move"
+        },
+        "long_rest":{
+            "bias":0,
+            "type":"special",
+            "handle":"special"
+        },
+        "move":{
+            "bias":16,
+            "type":"movement",
+            "handle":"move"
+        },
+        "move_while_grappling":{
+            "bias":0,
+            "type":"movement",
+            "targets":["ally", "enemy"],
+            "handle":"move"
+        },
+        "nothing":{
+            "bias":0,
+            "type":"special",
+            "handle":"special"
+        },
+        "opportunity_attack":{
+            "bias":16,
+            "type":"reaction",
+            "targets":["enemy"],
+            "handle":"attack"
+        },
+        "ready":{
+            "bias":0,
+            "type":"regular",
+            "handle":"special"
+        },
+        "short_rest":{
+            "bias":0,
+            "type":"special",
+            "handle":"special"
+        },
+        "shove":{
+            "bias":0,
+            "type":"regular",
+            "targets":["enemy"],
+            "handle":"attack"
+        },
+        "stand_up":{
+            "bias":0,
+            "type":"movement",
+            "handle":"move"
+        },
+        "swim":{
+            "bias":0,
+            "type":"movement",
+            "handle":"move"
+        }
+    },
+
+
+
+    "common": {
+        "bonus_attack":{
+            "bias":0,
+            "type":"bonus",
+            "targets":["enemy"],
+            "handle":"attack"
+        },
+        "doff_shield":{
+            "bias":0,
+            "type":"regular",
+            "targets":["self"],
+            "handle":"stat"
+        },
+        "don_shield":{
+            "bias":0,
+            "type":"regular",
+            "targets":["self"],
+            "handle":"stat"
+        },
+        "offhand_attack":{
+            "bias":16,
+            "type":"bonus",
+            "targets":["enemy"],
+            "handle":"attack"
+        },
+        "use_bardic_inspiration":{
+            "bias":16,
+            "type":"free",
+            "handle":"special"
+        }
+    },
+
+
+
+    "bard": {
+        "bardic_inspiration":{
+            "bias":16,
+            "type":"bonus",
+            "targets":["ally"],
+            "handle":"stat"
+        }
+    },
+
+
+
+    "druid": {
+        "drop_wild_shape":{
+            "bias":0,
+            "type":"bonus",
+            "handle":"special"
+        },
+        "wild_shape":{
+            "bias":0,
+            "type":"action",
+            "handle":"special"
+        }
+    },
+
+
+
+    "monk": {
+        "martial_arts":{
+            "bias":16,
+            "type":"bonus",
+            "targets":["enemy"],
+            "handle":"attack"
+        }
+    },
+
+
+
+    "fighter": {
+        "action_surge":{
+            "bias":0,
+            "type":"free",
+            "handle":"stat"
+        },
+        "second_wind":{
+            "bias":0,
+            "type":"bonus",
+            "handle":"stat"
+        },
+        "extra_attack":{
+            "bias":0,
+            "type":"regular",
+            "targets":["enemy"],
+            "handle":"attack"
+        },
+        "extra_attack_3":{
+            "bias":0,
+            "type":"regular",
+            "targets":["enemy"],
+            "handle":"attack"
+        },
+        "extra_attack_4":{
+            "bias":0,
+            "type":"regular",
+            "targets":["enemy"],
+            "handle":"attack"
+        }
+    },
+
+
+
+    "warlock": {},
+
+
+
+    "spells":{
+        "cast_shillelagh": {
+            "bias":0,
+            "type":"bonus",
+            "targets":["self"],
+            "handle":"spell"
+        }
+    },
+
+
+
+    "unique":{
+        "bottled_respite":{
+            "bias":0,
+            "type":"regular",
+            "handle":"special"
+        }
+    }
+}

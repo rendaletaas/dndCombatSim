@@ -1,0 +1,99 @@
+Unless the type includes 'optional', you MUST have the field
+
+format for CHARACTERS.JSON
+each character must have a unique name; if you wish to create multiple instances with the same name use field "instances"; omit apostrophes
+{
+    "name": (str) The name of the character,
+    "team": (str) The team of the character; one of ["pc", "ally", "enemy"],
+    "stats": (dict) The stats of the character {
+        "level": (int, optional) The level of the character
+        "class_level": (dict, optional) The class levels of the character {
+            "{class name}": (int) The levels in that class
+        },
+        "prof": (int) The proficiency of the character,
+        "str": (int) The strength score of the character,
+        "dex": (int) The dexterity score of the character,
+        "con": (int) The constitution score of the character,
+        "int": (int) The intelligence score of the character,
+        "wis": (int) The wisdom score of the character,
+        "cha": (int) The charisma score of the character,
+        "skills": (list of str, optional) Any skills the character; use underscores e.g. sleight_of_hand;
+        "ac": (int) The armor class of the character,
+        "max_hp": (int or str) If int, the max HP of the character; if str, will roll for the HP on creation e.g. 2d6+3,
+        "hit_dice": (list of str, optional) The hit dice of the character e.g. ["3d8", "1d10"],
+        "saves": (list of str, optional) The saving throws the character is proficient in e.g. ["str", "dex"],
+        "speed": (int) The speed of the character,
+        "spellcast": (str, optional) The spellcasting ability of the character,
+        "slots": (dict, optional) The maximum spell slots of the character {
+            "{int of level}": (int) The number of slots at this spell level
+        },
+        "tools": (list of str, optional) Any tools, weapons, or equipment the character is proficient in that is NOT already given by their class; keep things singular e.g. ["shield", "shortsword"],
+        "imm": (list of str, optional) All damage immunities of the character e.g. ["bludgeoning", "cold"],
+        "res": (list of str, optional) All damage resistances of the character,
+        "vul": (list of str, optional) All damage vulnerabilities of the character,
+        "condimm": (list of str, optional) All condition immunities of the character e.g. ["poisoned", "prone", "stunned"]
+    },
+    "attacks": (dict) The attacks of the character {
+        "{name of attack}": (int) Bias of the attack (higher number=more likely the character will use it, 0 meaning never); one of [16,8,4,2,1,0]
+        ### If using a custom attack have custom_attacks.json at the end of the name e.g. 'powerful_slam custom_attacks.json'
+    },
+    "actions": (dict) The actions of the character that is not already in "default" {
+        "inc_category": (list of str, optional) The categories to include all actions for the character e.g. ["fighter"],
+        "inc_action": (list of str, optional) The individual actions to include for the character e.g. ["cast_fireball", "cast_shillelagh"],
+        "unique_actions": (dict, optional) The unique actions of the character (there will be NO coding for this action, equivalent to a do_nothing action) {
+            "{name of the action}": (dict) {
+                "bias": (int) The bias of the action; one of [16,8,4,2,1,0],
+                "type": (str) The type of the action; one of [regular, bonus, reaction, movement, free, special]
+            }
+        }
+    },
+    "property": (dict, optional) Any additional properties this character should have {
+        "{key of the property}": (str) Value of the property e.g. "fighting_style":"archery"
+    },
+    "resource": (list of str, optional) Any additional resources this character should have e.g. ["genies_wrath", "hunters_mark"],
+    "instances": (int, optional) How many instances of this character to make; only works for team in ["ally","enemy"]; should be 2 or greater
+}
+
+
+format for ACTIONS.JSON
+each action must have a unique name; omit apostrophes
+{
+    "{category}": {
+    ### class specific actions should go in the class categories; spells should go in "spells"; actions that don't fall into other categories go in "unique"
+        "{name of action}": {
+        ### use underscores for the name, any spell casts should start with cast_
+            "bias": (int) The bias that the character will take this action; the higher the more likely 0 meaning never; one of [16,8,4,2,1,0],
+            "type": (str) The type of action that this is; one of ["regular", "bonus", "movement", "reaction", "free", "special"],
+            "targets": (list of str, optional) The targets of the action; list elements are one of ["self", "ally", "enemy"],
+            "handle": (str) How the code should handle the action; one of ["attack", "spell", "move", "stat", "contest", "special"]
+        }
+    }
+}
+
+
+format for CUSTOM_ATTACKS.JSON
+each attack must have a unique name and not be named something already in attacks.json; omit apostrophes
+{
+    "name": (str) The name of the attack; use underscores e.g. "pact_sword",
+    "ability": (str) The ability to add to the attack roll if proficient; one of ["str", "dex", "con", "int", "wis", "cha"],
+    "damagedice": (list of str) The damage of the attack in format of {ability} # {type}; ability is the ability modifer to be added to the damage and can be omitted; use prefix m_ to designate magical weapon damage e.g ["str 1d8+1 m_slashing", "1d4 fire"],
+    "type": (list of str) The type of the attack to determine proficiency; see attacks.json for examples e.g. ["longsword", "martial_weapon", "martial_melee_weapon"]; if ["all"] there is universal proficiency; if [] add no proficiency to the roll
+    "hitmod": (int) Any additonal modifiers to the attack roll not covered by any other effect (will need to look at code to determine what is not covered),
+    "multi": (int) The number of attacks/attack rolls this will make,
+    "properties": (list of str, optional) Any additional properties of this attack e.g. ["finesse", "light", "monk_weapon"]
+}
+
+
+format for SPELLS.JSON
+each spell must have a unique name; omit apostrophes
+{
+    "{name of spell}":{
+    ### use underscores
+        "level": (int) The level of the attack in 0 to 9 inclusive,
+        "school": (str) The spell school of the spell e.g. "evocation",
+        "cast": (str) The casting cost; one of ["regualar", "bonus", "reaction"],
+        "target": (list of str) The targets of the spell; list elements one of ["self", "ally", "enemies"],
+        "concentration": (bool) If this spell uses concentration,
+        "duration": (str) The duration of the spell effect; in form of # {unit}; unit is one of ["round", "second", "minute", "hour", "day"] e.g. "1 round" or "5 day"
+    }
+}
