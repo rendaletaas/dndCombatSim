@@ -2,7 +2,7 @@
     {
         "name": "handaxe",
         "ability": "dex",
-        "damagedice": ["dex 1d6 slashing"],
+        "damagedice": ["1d6 dex slashing"],
         "type": ["handaxe", "simple_weapon", "simple_melee_weapon"],
         "hitmod": 0,
         "multi": 1,
@@ -11,7 +11,7 @@
     {
         "name": "longsword",
         "ability": "str",
-        "damagedice": ["str 1d8 slashing"],
+        "damagedice": ["1d8 str slashing"],
         "type": ["longsword", "martial_weapon", "martial_melee_weapon"],
         "hitmod": 0,
         "multi": 1
@@ -19,7 +19,7 @@
     {
         "name": "longsword_2h",
         "ability": "str",
-        "damagedice": ["str 1d10 slashing"],
+        "damagedice": ["1d10 str slashing"],
         "type": ["longsword", "martial_weapon", "martial_melee_weapon"],
         "hitmod": 0,
         "multi": 1
@@ -27,7 +27,7 @@
     {
         "name": "quarterstaff",
         "ability": "str",
-        "damagedice": ["str 1d6 bludgeoning"],
+        "damagedice": ["1d6 str bludgeoning"],
         "type": ["quarterstaff", "simple_weapon", "simple_melee_weapon"],
         "hitmod": 0,
         "multi": 1,
@@ -36,7 +36,7 @@
     {
         "name": "quarterstaff_2h",
         "ability": "str",
-        "damagedice": ["str 1d8 bludgeoning"],
+        "damagedice": ["1d8 str bludgeoning"],
         "type": ["quarterstaff", "simple_weapon", "simple_melee_weapon"],
         "hitmod": 0,
         "multi": 1,
@@ -45,7 +45,7 @@
     {
         "name": "quarterstaff_shillelagh",
         "ability": "wis",
-        "damagedice": ["wis 1d8 m_bludgeoning"],
+        "damagedice": ["1d8 wis m_bludgeoning"],
         "type": ["quarterstaff", "simple_weapon", "simple_melee_weapon"],
         "hitmod": 0,
         "multi": 1
@@ -53,7 +53,7 @@
     {
         "name": "scimitar",
         "ability": "str",
-        "damagedice": ["str 1d6 piercing"],
+        "damagedice": ["1d6 str piercing"],
         "type": ["shortsword", "martial_weapon", "martial_melee_weapon"],
         "hitmod": 0,
         "multi": 1,
@@ -62,7 +62,7 @@
     {
         "name": "shortsword",
         "ability": "str",
-        "damagedice": ["str 1d6 piercing"],
+        "damagedice": ["1d6 str piercing"],
         "type": ["shortsword", "martial_weapon", "martial_melee_weapon"],
         "hitmod": 0,
         "multi": 1,
@@ -71,7 +71,7 @@
     {
         "name": "spear",
         "ability": "str",
-        "damagedice": ["str 1d6 piercing"],
+        "damagedice": ["1d6 str piercing"],
         "type": ["spear", "simple_weapon", "simple_melee_weapon"],
         "hitmod": 0,
         "multi": 1
@@ -79,7 +79,7 @@
     {
         "name": "spear_2h",
         "ability": "str",
-        "damagedice": ["str 1d8 piercing"],
+        "damagedice": ["1d8 str piercing"],
         "type": ["spear", "simple_weapon", "simple_melee_weapon"],
         "hitmod": 0,
         "multi": 1
@@ -87,7 +87,7 @@
     {
         "name": "unarmed",
         "ability": "str",
-        "damagedice": ["str 1d1 bludgeoning"],
+        "damagedice": ["0d0+1 str bludgeoning"],
         "type": ["all"],
         "hitmod": 0,
         "multi": 1,
@@ -96,7 +96,7 @@
     {
         "name": "unarmed_4",
         "ability": "str",
-        "damagedice": ["str 1d4 bludgeoning"],
+        "damagedice": ["1d4 str bludgeoning"],
         "type": ["all"],
         "hitmod": 0,
         "multi": 1,
@@ -105,7 +105,7 @@
     {
         "name": "unarmed_6",
         "ability": "str",
-        "damagedice": ["str 1d6 bludgeoning"],
+        "damagedice": ["1d6 str bludgeoning"],
         "type": ["all"],
         "hitmod": 0,
         "multi": 1,
@@ -114,7 +114,7 @@
     {
         "name": "unarmed_8",
         "ability": "str",
-        "damagedice": ["str 1d8 bludgeoning"],
+        "damagedice": ["1d8 str bludgeoning"],
         "type": ["all"],
         "hitmod": 0,
         "multi": 1,
@@ -123,7 +123,7 @@
     {
         "name": "unarmed_10",
         "ability": "str",
-        "damagedice": ["str 1d10 bludgeoning"],
+        "damagedice": ["1d10 str bludgeoning"],
         "type": ["all"],
         "hitmod": 0,
         "multi": 1,

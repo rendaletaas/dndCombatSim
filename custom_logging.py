@@ -1,7 +1,7 @@
 ﻿# description:  Module to create and handle custom logger.
 # author:       Taas, Rendale Mark
 # created:      20230925
-# last edited:  20230929
+# last edited:  20230930
 
 """Designs and creates a custom logger for dndbattlesim.
 
@@ -42,8 +42,8 @@ _LEVEL_DICT = {
     'check':    18,                 # 18    for any skill or ability checks
     'info':     logging.INFO,       # 20    for information that does not fall into any other category
     'simulatn': 21,                 # 21    for any simulating of character decisions
-    'picture':  22,                 # 22    for any pictures
-    'action':   23,                 # 23    for any actions done by a character
+    'action':   22,                 # 22    for any actions done by a character
+    'picture':  23,                 # 23    for any pictures
     'turn':     24,                 # 24    for any information about the current character's turn
     'envrmnt':  25,                 # 25    for any information about the battle that is not specific to a character
     'round':    26,                 # 26    for any information about the current round of the battle
@@ -228,11 +228,24 @@ class custom_logger(logging.getLoggerClass()):
     Args:
         logger_name = (str) Name of the logger. Recommend to be related to the module the logger runs in.
 
-    Unique methods:
-        - roll: log a message at level roll
-        - damage: log a message at level damage
-        - hit: log a message at level hit
-        - action: log a message at level action
+    Unique methods: Each method corresponds to its level
+        - debugall
+        - roll
+        - resource
+        - stat
+        - conditn
+        - damage
+        - hit
+        - save
+        - check
+        - simulatn
+        - action
+        - picture
+        - turn
+        - envrmnt
+        - round
+        - battle
+        - header
     """
 
     def __init__(self, logger_name):
@@ -285,13 +298,13 @@ class custom_logger(logging.getLoggerClass()):
         """Send a log message at level SIMULATN=21"""
         self.log(_LEVEL_DICT['simulatn'], message)
 
-    def picture(self, message):
-        """Send a log message at level PICTURE=22"""
-        self.log(_LEVEL_DICT['picture'], message)
-
     def action(self, message):
-        """Send a log message at level ACTION=23"""
+        """Send a log message at level ACTION=22"""
         self.log(_LEVEL_DICT['action'], message)
+
+    def picture(self, message):
+        """Send a log message at level PICTURE=23"""
+        self.log(_LEVEL_DICT['picture'], message)
 
     def turn(self, message):
         """Send a log message at level TURN=24"""

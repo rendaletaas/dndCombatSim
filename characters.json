@@ -208,13 +208,40 @@
             "spear_2h": 16
         },
         "actions": {},
-        "instances": 3
+        "instances": 6
     },
 
 
 
 
 
+    {
+        "name": "wolf_shifter",
+        "team": "enemy",
+        "stats": {
+            "prof": 2,
+            "str": 18,
+            "dex": 14,
+            "con": 16,
+            "int": 9,
+            "wis": 9,
+            "cha": 10,
+            "skills": ["athletics", "perception", "intimidation"],
+            "ac": 18,
+            "max_hp": 70,
+            "saves": ["str", "dex"],
+            "speed": 40
+        },
+        "attacks": {
+            "claw custom_attacks.json": 2,
+            "kick custom_attacks.json": 16
+        },
+        "actions": {},
+        "bias": {
+            "dodge": 16,
+            "attack": 4
+        }
+    },
     {
         "name": "lesser_water_elemental",
         "team": "enemy",

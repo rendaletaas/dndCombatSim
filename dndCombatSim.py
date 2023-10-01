@@ -1,16 +1,18 @@
 #!/usr/bin/env python3
-# description:  Script to simulate DnD battles
+# description:  Script to simulate DnD combat
 # author:       Taas, Rendale Mark
 # created:      20230925
 # last edited:  20230930
 
-"""Script that will simulate DnD battles.
+"""Script that will simulate DnD combat.
 To do:
     Movement
     Wild shape
-    Shillelagh
 
 Functions:
+    custom_hit_conditions
+    custom_conditional_damage
+    custom_spell
     roll_20
     roll_d
     _parse_d
@@ -19,11 +21,11 @@ Functions:
 Classes:
     attack
     spell
-    battleChar
+    combatCharacter
         stats
         resources
         actionChooser
-    battleStage
+    combat
         characterAction
 Main in this file
 """
@@ -32,6 +34,7 @@ Main in this file
 #=========================================================== IMPORTS ===========================================================
 ################################################################################################################################
 
+import os
 import time
 import random
 import math
@@ -55,31 +58,157 @@ AUTO_FAIL = -100
 TIME_UNITS = {'round':6, 'second':1, 'minute':60, 'hour':3600, 'day':86400, 'sont':3, 'eont':3}
 
 current_time = time.strftime('%Y%m%d%H%M%S', time.localtime())
-log = custom_logging.create_custom_logger_with_handler('battle', f'battle{current_time}.log', 'debug', 'conditn', False, False)
-#log = custom_logging.create_custom_logger_with_handler('battle', f'battle{current_time}.log', 'debug', 'picture', False, False)
+if not custom_logging.os.path.exists('./logs'):
+    os.mkdir('./logs')
+    print('Created logs folder')
+
+# If you want to do attack pictures
+ATTACK_PICTURES = True
+
+# If you wish to change the verbosity, modify the third argument for the log and the fourth argument for the console. Available levels are found in custom_logging.py
+# You can also comment to one of the presets
+
+# Default verbosity
+#log = custom_logging.create_custom_logger_with_handler('battle', f'./logs/battle{current_time}.log', 'roll', 'picture', False, False)
+
+# For debugging script
+#log = custom_logging.create_custom_logger_with_handler('battle', f'./logs/battle{current_time}.log', 'debugall', 'conditn', False, False)
+
+# Minimal messages
+log = custom_logging.create_custom_logger_with_handler('battle', f'./logs/battle{current_time}.log', 'simulatn', 'picture', False, False)
+
+################################################################################################################################
+#====================================================== CUSTOM FUNCTIONS ======================================================
+################################################################################################################################
+
+def custom_hit_conditons(attack, source, target, pass_arg={}):
+    """Custom hit conditions. See attack._hit_conditions method.
+    Create an if-branch for each custom attack.
+
+    Args:
+        - attack    = (str) The name of the attack
+        - source    = (combatCharacter obj) The character doing the attack
+        - target    = (combatCharacter obj) The target of the attack
+        - pass_arg  = (dict, optional) Any additional information that needs to be check. Default={}
+
+    Returns: (dict) What should be modified to the roll
+        - Key   | Value
+        - adv   | (int) If advantage or disadvantage should be given. A postive number means advantage, a negative number means disadvantage
+        - mod   | (int) Any modifiers to the roll
+    """
+    if not isinstance(attack, str):
+        raise TypeError
+    if not isinstance(source, combatCharacter):
+        raise TypeError('arg source must be a combatCharacter obj')
+    if not isinstance(target, combatCharacter):
+        raise TypeError('arg target must be a combatCharacter obj')
+    if not isinstance(pass_arg, dict):
+        raise TypeError('arg pass_arg must be a dict')
+
+    return_val = {'adv':0, 'mod':0}
+
+    # Create an if-branch for each custom attack below; the example branch can be removed/overwritten
+    if attack == 'custom_attack':
+        log.debugall('custom_attack grants advantage')
+        return_val['adv'] += 1
+        return return_val
+
+    # End where the custom code should go
+
+    log.debug(f'could not find any code for custom attack {attack}')
+    return return_val
+# End custom_hit_conditions function
+
+def custom_conditional_damage(attack, source, target, crit=False, pass_arg={}):
+    """Custom damage conditions. See attack._conditional_damage method.
+    Create an if-branch for each custom attack.
+
+    Args:
+        - attack    = (str) The name of the attack
+        - source    = (combatCharacter obj) The character doing the attack
+        - target    = (combatCharacter obj) The target of the attack if needed
+        - crit      = (bool, optional) If the attack was a critical hit. Default=False.
+        - pass_arg  = (dict, optional) Any additional information that needs to be check. Default={}
+
+    Returns:
+        (str) In damage string in #d#+# {type} format. E.g. 2d4+3 force. See attack._comprehend_damage_str method.
+    """
+    if not isinstance(attack, str):
+        raise TypeError
+    if not isinstance(source, combatCharacter):
+        raise TypeError('arg source must be a combatCharacter obj')
+    if not isinstance(target, combatCharacter):
+        raise TypeError('arg target must be a combatCharacter obj')
+    if not isinstance(pass_arg, dict):
+        raise TypeError('arg pass_arg must be a dict')
+
+    return_val = ''
+
+    # Create an if-branch for each custom attack below; the example branch can be removed/overwritten
+    if attack == 'custom_attack':
+        log.debugall('custom_attack adds fire damage')
+        return '1d4+1 fire'
+
+    # End where the custom code should go
+
+    log.debug(f'could not find any code for custom attack {attack}')
+    return return_val
+# End custom_conditional_damage fuction
+
+def custom_spell(name, source, target=[], pass_arg=None):
+    """The effect of a custom spell. You should create an if-branch for each spell
+
+    Args:
+        - name = (str) The name of the spell
+        - source = (combatCharacter obj) The character that is casting the spell
+        - target = (list of combatCharacter obj, optional) The target characters of the spell. Default=[]
+        - pass_arg = (any, optional) Any additional arguments that the spell needs. Default=None.
+
+    Returns: (dict) Results for each target
+        - Key                           | Value
+        - {name of affected character}  | (str) What happened to the character
+    """
+    if not isinstance(name, str):
+        raise TypeError('arg name must be a str')
+    if not isinstance(source, combatCharacter):
+        raise TypeError('arg source must be a combatCharacter obj')
+    if not isinstance(target, list):
+        raise TypeError('arg target must be a list of combatCharacter obj')
+
+    if name == 'unstoppable':
+        return {f'{source._name}': 'unstoppable condition'}
+
+    raise ValueError(f'could not find custom spell {name}')
+# End custom_spell
 
 ################################################################################################################################
 #========================================================== FUNCTIONS ==========================================================
 ################################################################################################################################
 
-def roll_20(adv='norm'):
+def roll_20(adv=0):
     """Will get a random number between 1 and 20 inclusive
 
     Args:
-        - adv = (str) If there should be advantage/disadvantage on the roll. One of [norm, adv, dis]. Default=norm.
+        - adv = (int) If there should be advantage/disadvantage on the roll. Advantage is > 0, disadvantage < 0. Default=0
 
     Returns:
         (int) A number rolled
     """
-    if (adv=='norm'):
+    if not isinstance(adv, int):
+        raise TypeError('arg adv must be an int')
+    if (adv == 0):
         return_val = random.randint(1,20)
         log.roll(f'd20={return_val}')
-    elif (adv=='adv'):
-        return_val = max(random.randint(1,20), random.randint(1,20))
-        log.roll(f'd20(adv)={return_val}')
+    elif (adv > 0):
+        roll1 = random.randint(1,20)
+        roll2 = random.randint(1,20)
+        return_val = max(roll1, roll2)
+        log.roll(f'd20(adv)={return_val} ({roll1} {roll2})')
     else:
-        return_val = min(random.randint(1,20), random.randint(1,20))
-        log.roll(f'd20(dis)={return_val}')
+        roll1 = random.randint(1,20)
+        roll2 = random.randint(1,20)
+        return_val = min(roll1, roll2)
+        log.roll(f'd20(dis)={return_val} ({roll1} {roll2})')
     return return_val
 # End roll_20 function
 
@@ -139,9 +268,13 @@ def _parse_d(d_str):
     plus_split = d_str.split('+')
     if (len(plus_split)==1):
         mod = 0
-    else:
+    elif (len(plus_split)==2):
         mod = int(plus_split[1])
+    else:
+        raise ValueError(f'd_str={d_str} had too many +')
     d_split = plus_split[0].split('d')
+    if (len(d_split)!=2):
+        raise ValueError(f'd_str={d_str} did not have a d or too many to separate')
     return (int(d_split[1]), int(d_split[0]), mod)
 # End _parse_d function
 
@@ -171,6 +304,7 @@ def _create_attack(name, in_json='attacks.json'):
     Returns:
         (attack obj) The attack
     """
+    custom = (in_json!='attacks.json')
     log.debugall(f'attempting to create attack {name}')
     with open(in_json, 'r') as read_file:
         data = json.load(read_file)
@@ -183,7 +317,8 @@ def _create_attack(name, in_json='attacks.json'):
                     prof=i_attack['type'],
                     hitmod=i_attack['hitmod'],
                     multi=i_attack['multi'],
-                    properties=i_attack['properties'] if ('properties' in i_attack) else []
+                    properties=i_attack['properties'] if ('properties' in i_attack) else [],
+                    custom=custom
                 )
     raise Exception(f'could not find attack {name} in {in_json}')
 # End _create_attack function
@@ -193,7 +328,7 @@ def _create_attack(name, in_json='attacks.json'):
 ################################################################################################################################
 
 class attack(object):
-    """Possible attacks.
+    """Logic for performing an attack.
 
     Args:
         - name = (str) Name of the attack
@@ -206,14 +341,19 @@ class attack(object):
         - properties = (list of str, optional) Additional properties for this attack. Default=[]
 
     Methods:
-        - roll_hit: have the attack roll to hit
-        - roll_damage: have the attack roll for damage
+        - _comprehend_damage_str    :(static) parse a damage string
+        - _hit_conditions           :check conditions of character to modify hit
+        - _hit_proficiency          :check proficiencies of character to see if they can add their proficiency modifier
+        - roll_hit                  :have the attack roll to hit
+        - _conditional_damage       :get additional damage given certain conditions
+        - roll_damage               :have the attack roll for damage
     """
-    def __init__(self, name, ability, damagedice, prof, hitmod=0, multi=1, properties=[]):
+    def __init__(self, name, ability, damagedice, prof, hitmod=0, multi=1, properties=[], custom=False):
         """Init for attack
 
         Attributes:
             - name          = (str) The name of the attack
+            - _custom       = (bool) If this attack was a custom attack
             - _ability      = (str) The ability used for the attack roll
             - _damage       = (list of dict) Each dice used for damage
                 - Key   | Value
@@ -232,6 +372,8 @@ class attack(object):
             raise TypeError('arg name must be a str')
         self.name = name
 
+        self._custom = custom
+
         if (ability not in ABILITIES):
             raise ValueError(f'{ability} is not an ability')
         self._ability = ability
@@ -239,19 +381,9 @@ class attack(object):
         self._damage = []
         if not isinstance(damagedice, list):
             raise TypeError('arg damagedice must be a list')
+        log.debugall(f'damagedice={damagedice}')
         for i_die in damagedice:
-            if not isinstance(i_die, str):
-                raise TypeError('arg damagedice must be a list of str')
-            str_split = i_die.split(' ')
-            if (len(str_split)==2):
-                mod_ability = ''
-                parse_tuple = _parse_d(str_split[0])
-            else:
-                mod_ability = str_split[0]
-                parse_tuple = _parse_d(str_split[1])
-            self._damage.append({
-                'num': parse_tuple[1], 'fac': parse_tuple[0], 'mod': parse_tuple[2], 'abl': mod_ability, 'typ': str_split[-1]
-            })
+            self._damage.append(self._comprehend_damage_str(i_die))
 
         if not isinstance(prof, list):
             raise TypeError('arg prof must be a list')
@@ -271,90 +403,238 @@ class attack(object):
         self._last_used = ''
     # End __init__
 
-    def roll_hit(self, character, adv='norm', improved=False):
+    @staticmethod
+    def _comprehend_damage_str(in_str):
+        """[STATIC] Parse a damage string and get the relevant information
+
+        Args:
+            - in_str = (str) The string to comprehend. In format #d#+# {ability} {type}. See _parse_d function. E.g. 1d8+1 str slashing
+
+        Returns: (dict) The information of that string
+            - Key   | Value
+            - num   | (int) The number of dice to roll
+            - fac   | (int) The number of faces on an individual die
+            - mod   | (int) The flat modifier to add to the damage
+            - abl   | (str) The ability modifier of the attacker to add to the damage. One of ['', str, dex, con, int, wis, cha].
+            - typ   | (str) The type of damage
+        """
+        if not isinstance(in_str, str):
+            raise TypeError('arg in_str must be a str')
+
+        str_split = in_str.split(' ')
+        parse_tuple = _parse_d(str_split[0])
+        if (len(str_split)==3):
+            if (str_split[1] not in ABILITIES):
+                raise ValueError(f'damage string had {str_split[1]} which is not an ability')
+            mod_ability = str_split[1]
+            damage_type = str_split[2]
+        else:
+            mod_ability = ''
+            damage_type = str_split[1]
+
+        return {
+            'num': parse_tuple[1],
+            'fac': parse_tuple[0],
+            'mod': parse_tuple[2],
+            'abl': mod_ability,
+            'typ': damage_type
+        }
+    # End _comprehend_damage_str method
+
+    def _hit_conditions(self, source, target, pass_arg={}):
+        """Will look at the current conditions of the attacking character, and see if the hit should be modified in any way. Will also check the conditions of the target as well as any
+        environmental conditions.
+
+        Args:
+            - source    = (combatCharacter obj) The character doing the attack
+            - target    = (combatCharacter obj) The target of the attack
+            - pass_arg  = (dict, optional) Any additional information that needs to be check. Default=None
+
+        Returns: (dict) What should be modified to the roll
+            - Key   | Value
+            - adv   | (int) If advantage or disadvantage should be given. Advantage is > 0, disadvantage is < 0.
+            - mod   | (int) Any modifiers to the roll
+        """
+        if not isinstance(source, combatCharacter):
+            raise TypeError('arg source must be a combatCharacter obj')
+        if not isinstance(target, combatCharacter):
+            raise TypeError('arg target must be a combatCharacter obj')
+        if not isinstance(pass_arg, dict):
+            raise TypeError('arg pass_arg must be a dict')
+
+        def _overlap(set_1, set_2):
+            if not isinstance(set_1, set):
+                raise TypeError('arg set_1 must be a set')
+            if not isinstance(set_2, set):
+                raise TypeError('arg set_2 must be a set')
+            return not set_1.isdisjoint(set_2)
+        # End _overlap inner function
+
+        return_val = {'adv': 0, 'mod': 0}
+
+        # Check custom hit conditions
+        if self._custom:
+            return_val = custom_hit_conditons(attack=self.name, source=source, target=target, pass_arg=pass_arg)
+
+        # Check attacker conditions
+        if _overlap(set(source.char_resources.cond), {'blinded', 'frightened', 'prone', 'restrained'}):
+            log.hit(f'{source._name} has disadvantage because of a condition')
+            return_val['adv'] += -1
+        if _overlap(set(source.char_resources.cond), {'invisible'}):
+            log.hit(f'{source._name} has advantage because of a condition')
+            return_val['adv'] += 1
+
+        # Check target conditions
+        if _overlap(set(target.char_resources.cond), {'invisible'}):
+            log.hit(f'{target._name} grants disadvantage because of a condition')
+            return_val['adv'] -= 1
+        if _overlap(set(target.char_resources.cond), {'prone'}):
+            if ('in5ft' in pass_arg):
+                log.hit(f'{target._name} grants advantage because they are prone and was hit within 5 ft')
+                return_val['adv'] += 1
+            else:
+                log.hit(f'{target._name} grants disadvantage because they are prone and was not hit within 5 ft')
+                return_val['adv'] -= 1
+        if ('dodge' in target.char_resources.cond):
+            log.hit(f'{target._name} grants disadvantage because they are dodging')
+            return_val['adv'] -= 1
+        if _overlap(set(target.char_resources.cond), {'blinded', 'paralyzed', 'petrified', 'restrained', 'stunned', 'unconscious'}):
+            log.hit(f'{target._name} grants advantage because of a condition')
+            return_val['adv'] += 1
+
+        # Check for bardic inspiration
+        if ('bardic_inspiration' in source.char_resources.cond):
+            bi_roll = roll_d_str(source.char_resources.cond['bardic_inspiration']._properties)
+            log.action(f'{source._name} is using their bardic inspiration and rolled a {bi_roll}')
+            return_val['mod'] += bi_roll
+            source.char_resources.remove_condition('bardic_inspiration')
+        
+        # Handle ability modifier
+        if (
+            ('finesse' in self._properties) or
+            (('monk_weapon' in self._properties) and ('monk' in source.char_stats.class_level))
+        ):
+            use_ability = 'dex' if (source.char_stats.dex > source.char_stats.str) else 'str'
+            self._last_used = use_ability
+            log.hit(f'{source._name} is using {use_ability} for {self.name}')
+            ability_mod = source.char_stats.get_mod(use_ability)
+        else:
+            ability_mod = source.char_stats.get_mod(self._ability)
+        log.debugall(f'{source._name} ability mod={ability_mod}')
+        return_val['mod'] += ability_mod
+
+        # Handle properties
+        if (('simple_ranged_weapon' in self._prof) or ('martial_ranged_weapon' in self._prof)):
+            if ('fighting_style' in source.char_stats.property):
+                if (source.char_stats.property['fighting_style']=='archery'):
+                    log.debug(f'{source._name} gets a +2 due to archery')
+                    return_val['mod'] += 2
+
+        return return_val
+    # End _hit_conditons method
+
+    def _hit_proficiency(self, character):
+        """Will check the proficiencies of the attacker and see if they have proficiencies with this attack
+
+        Args:
+            - character = (combatCharacter obj) The attacking character
+
+        Returns:
+            (int) The modifier to the roll
+        """
+        if not isinstance(character, combatCharacter):
+            raise TypeError('arg character must be a combatCharacter')
+        return_val = character.char_stats.prof
+        if (self._prof=={"all"}):
+            log.debug(f'characters are always proficient with {self.name}; mod={return_val}')
+            return return_val
+        else:
+            is_prof = not self._prof.isdisjoint(set(character.char_stats.tools))
+            if is_prof:
+                log.debug(f'{character._name} is proficient with {self.name}, mod={return_val}')
+                return return_val
+            else:
+                log.hit(f'{character._name} is not proficient with {self.name}')
+                return 0
+    # End _hit_proficiency method
+
+    def roll_hit(self, source, target, pass_arg={}, adv=0):
         """Will do an attack roll with this attack
 
         Args:
-            - character = (battleChar obj) The character doing this attack
-            - adv = (str, optional) If the attack roll has advantage or disadvantage. One of [norm, adv, dis]. Default=norm.
-            - improved = (bool, optional) If this has improved critical feat
+            - source    = (combatCharacter obj) The character doing this attack
+            - target    = (combatCharacter obj) The target of the attack
+            - pass_arg  = (dict, optional) Any additional arguments to pass to the hit. Default={}
+            - adv       = (int, optional) If the attack roll has advantage or disadvantage. Advantage is 1, disadvantage is -1. Default=0
 
         Returns: (tuple)
             - (str) If the hit was a critical hit/miss. One of [norm, hit, miss]
             - (int) The total rolled for the attack roll
         """
-        if not isinstance(character, battleChar):
-            raise TypeError('arg character must be a battleChar obj')
-        
+        if not isinstance(source, combatCharacter):
+            raise TypeError('arg character must be a combatCharacter obj')
+        if not isinstance(target, combatCharacter):
+            raise TypeError('arg character must be a combatCharacter obj')
+        if not isinstance(pass_arg, dict):
+            raise TypeError('arg pass_arg must be a dict')
+        if not isinstance(adv, int):
+            raise TypeError('arg adv must be an int')
+
+        total_mod = 0
+        hit_mod = self._hit_conditions(source=source, target=target, pass_arg=pass_arg)
+        total_mod += hit_mod['mod']
+
         # Roll d20
-        roll = roll_20(adv=adv)
+        roll = roll_20(adv + hit_mod['adv'])
         if (roll == 1):
-            log.hit(f'{character._name} using {self.name} rolled a critical miss!')
+            log.hit(f'{source._name} using {self.name} rolled a critical miss!')
             return ('miss', 0)
-        if ((roll == 20) or ((roll == 19) and (improved))):
-            log.hit(f'{character._name} using {self.name} rolled a critical hit!')
+        crit_threshold = 20
+        if ('crit_threshold' in source.char_stats.property):
+            log.debug(f'{source._name} crits on {source.char_stats.property} or higher')
+            crit_threshold = source.char_stats.property['crit_threshold']
+        if (roll >= crit_threshold):
+            log.hit(f'{source._name} using {self.name} rolled a critical hit!')
             return ('hit', 20)
-        
-        # Check for bardic inspiration
-        if ('bardic_inspiration' in character.char_resources.cond):
-            bi_roll = roll_d_str(character.char_resources.cond['bardic_inspiration']._properties)
-            log.action(f'{character._name} is using their bardic inspiration and rolled a {bi_roll}')
-            roll += bi_roll
-            character.char_resources.remove_condition('bardic_inspiration')
-        
-        # Handle properties
-        other_mod = 0
-        if (
-            ('finesse' in self._properties) or
-            (('monk_weapon' in self._properties) and ('monk' in character.char_stats.class_level))
-        ):
-            use_ability = 'dex' if (character.char_stats.dex > character.char_stats.str) else 'str'
-            ability_mod = character.char_stats.get_mod(use_ability)
-            self._last_used = use_ability
-            log.simulatn(f'{character._name} is using {use_ability} for {self.name}')
-        else:
-            ability_mod = character.char_stats.get_mod(self._ability)
-        if (('simple_ranged_weapon' in self._prof) or ('martial_ranged_weapon' in self._prof)):
-            if ('fighting_style' in character.char_stats.property):
-                if (character.char_stats.property['fighting_style']=='archery'):
-                    log.debug(f'{character._name} gets a +2 due to archery')
-                    other_mod += 2
 
         # Get total
-        if (self._prof=={"all"}):
-            prof_mod = character.char_stats.prof
-        else:
-            prof_mod = 0 if (self._prof.isdisjoint(set(character.char_stats.tools))) else character.char_stats.prof
-        self_mod = self._hitmod
-        log.debugall(f'{self.name} roll={roll} self={self_mod} prof={prof_mod} other={other_mod}')
-        modifier = ability_mod + prof_mod + self._hitmod + other_mod
-        log.hit(f'{character._name} using {self.name} rolled a {roll}+{modifier} to hit')
-        return ('norm', roll + modifier)
+        total_mod += self._hit_proficiency(character=source) + self._hitmod
+        log.hit(f'{source._name} using {self.name} rolled a {roll}+{total_mod} to hit')
+        return ('norm', roll + total_mod)
     # End roll_hit method
 
-    def roll_damage(self, char_obj, offhand=False, crit=False):
-        """Will do a damage roll with this attack
+    def _conditional_damage(self, source, target, crit=False, pass_arg={}):
+        """Will look at the current conditions of the attacker, and add any other sources of damage. Will also check the conditions of the target as well as any environmental conditions.
+        Immunities, resistances, and vulnerabilities are handled by combatCharacter.take_damage method.
 
         Args:
-            - char_obj  = (battleChar) The user's object
-            - offhand   = (bool, optional) If the attack was made with the offhand
+            - source    = (combatCharacter obj) The attacking character
+            - target    = (combatCharacter obj) The character being attacked
             - crit      = (bool, optional) If the attack was a critical hit
+            - pass_arg  = (dict, optional) Any additional information that needs to be checked. Default={}
 
         Returns:
-            - (dict) All the damage of the attack, by type
-                - Key               | Value
-                - {type of damage}  | (int) Total value of damage of that type
+            (list of str) Each list element must be in the #d#+# format
         """
-        if not isinstance(char_obj, battleChar):
-            raise TypeError('arg char_obj must be a battleChar.stats obj')
+        if not isinstance(source, combatCharacter):
+            raise TypeError('arg source must be a combatCharacter obj')
+        if not isinstance(target, combatCharacter):
+            raise TypeError('arg target must be a combatCharacter obj')
+        if not isinstance(pass_arg, dict):
+            raise TypeError('arg pass_arg must be a dict')
 
-        damage_list = self._damage
+        return_val = []
 
-        # Get additional forms of damage
-        if ('genies_wrath' in char_obj.char_resources.miscellaneous):
-            if (char_obj.char_resources.miscellaneous['genies_wrath']):
-                log.action(f'{char_obj._name} is using genies wrath to increase damage')
-                split_list = char_obj.char_stats.property['patron'].split('_')
+        # Get custom damage
+        if self._custom:
+            custom_str = custom_conditional_damage(attack=self.name, source=source, target=target, pass_arg=pass_arg)
+            if custom_str:
+                return_val.append(custom_str)
+
+        if ('genies_wrath' in source.char_resources.miscellaneous):
+            if (source.char_resources.miscellaneous['genies_wrath']):
+                log.action(f'{source._name} is using genies wrath to increase damage')
+                split_list = source.char_stats.property['patron'].split('_')
                 if (split_list[-1]=='dao'):
                     genie_type = 'm_bludgeoning'
                 elif (split_list[-1]=='djinni'):
@@ -364,9 +644,41 @@ class attack(object):
                 elif (split_list[-1]=='marid'):
                     genie_type = 'cold'
                 else:
-                    raise ValueError(f'{char_obj._name} has an invalid genie patron')
-                damage_list.append({'num':0, 'fac':0, 'mod':char_obj.char_stats.prof, 'abl':'', 'typ':genie_type})
-                char_obj.char_resources.miscellaneous['genies_wrath'] = 0
+                    raise ValueError(f'{source._name} has an invalid genie patron')
+                return_val.append(f'0d0+{source.char_stats.prof} {genie_type}')
+                source.char_resources.miscellaneous['genies_wrath'] = 0
+
+        return return_val
+    # End _conditional_damage method
+
+    def roll_damage(self, source, target, crit=False, pass_arg={}):
+        """Will do a damage roll with this attack
+
+        Args:
+            - source    = (combatCharacter) The attacking character
+            - target    = (combatCharacter) The targeted character
+            - crit      = (bool, optional) If the attack was a critical hit
+            - pass_arg  = (any, optional) Any additional information that needs to be checked. Default={}
+
+        Returns:
+            - (dict) All the damage of the attack, by type
+                - Key               | Value
+                - {type of damage}  | (int) Total value of damage of that type
+        """
+        if not isinstance(source, combatCharacter):
+            raise TypeError('arg source must be a combatCharacter obj')
+        if not isinstance(target, combatCharacter):
+            raise TypeError('arg target must be a combatCharacter obj')
+        if not isinstance(pass_arg, dict):
+            raise TypeError('arg pass_arg must be a dict')
+
+        damage_list = self._damage.copy()
+
+        # Get conditional damage
+        str_list = self._conditional_damage(source=source, target=target, crit=crit, pass_arg=pass_arg)
+        log.debugall(f'cond_damage={str_list}')
+        for i in str_list:
+            damage_list.append(self._comprehend_damage_str(i))
 
         # Iterate through all damage
         return_val = {}
@@ -377,21 +689,22 @@ class attack(object):
             # Roll for damage
             roll = roll_d(i_damage['fac'], (2 if crit else 1) * i_damage['num'])
 
-            # Handle properties
-            if (
-                (i_damage['abl'] in ['str', 'dex']) and (
-                    ('finesse' in self._properties) or
-                    (('monk_weapon' in self._properties) and ('monk' in char_obj.char_stats.class_level))
-                )
-            ):
+            # Handle finesse and monk_weapon properties
+            use_ability = i_damage['abl']
+            if (bool(self._last_used) and (i_damage['abl'] in ['str', 'dex'])):
+                log.debug(f'using {self._last_used} since {source._name} used it for the attack roll')
                 use_ability = self._last_used
-            else:
-                use_ability = i_damage['abl']
 
-            # Get total
-            ability_mod = char_obj.char_stats.get_mod(use_ability) if use_ability else 0
-            log.debugall(f'type={i_damage["typ"]} roll={roll} self={i_damage["mod"]} ability={ability_mod}')
-            return_val[i_damage['typ']] += roll + (min(ability_mod, 0) if offhand else ability_mod) + i_damage['mod']
+            # Get ability mod
+            ability_mod = source.char_stats.get_mod(use_ability) if use_ability else 0
+            if ('offhand' in pass_arg):
+                log.debug(f'{source._name} is attacking with their offhand')
+                ability_mod = min(ability_mod, 0)
+
+            # Get total and add to dict
+            log.debugall(f'type={i_damage["typ"]} roll={roll} mod={i_damage["mod"]} ability={ability_mod}')
+            return_val[i_damage['typ']] += (roll + i_damage['mod'] + ability_mod)
+        # End i_damage in damage_list for loop
 
         # Log damage
         printstr = f'{self.name} did'
@@ -433,7 +746,7 @@ class spell(object):
             - cost      = (str) The cost of this spell. One of [regular, bonus, reaction]
             - target    = (list of str) The valid targets of this spell
             - conc      = (bool) If this spell requires concentration
-            - duration  = (str) The duration of this spell, in format # {unit}. See battleChar.resources.condition class
+            - duration  = (str) The duration of this spell, in format # {unit}. See combatCharacter.resources.condition class
         """
         if not isinstance(name, str):
             raise TypeError('arg name must be a str')
@@ -465,8 +778,8 @@ class spell(object):
         """Have this spell do its effects
 
         Args:
-            - source    = (battleChar obj) The source character of this spell
-            - target    = (list of battleChar obj) The target characters of this spell
+            - source    = (combatCharacter obj) The source character of this spell
+            - target    = (list of combatCharacter obj) The target characters of this spell
             - pass_arg  = (any, optional) Any additional args that the spell needs. Default=None
 
         Returns:
@@ -497,8 +810,8 @@ class spell(object):
 
     def _cantrip(self, source, target=[], pass_arg=None):
         """Where all cantrips (0 level) are"""
-        if not isinstance(source, battleChar):
-            raise TypeError('arg source must be a battleChar obj')
+        if not isinstance(source, combatCharacter):
+            raise TypeError('arg source must be a combatCharacter obj')
         if not isinstance(target, list):
             raise TypeError('arg target must be a list')
         
@@ -511,8 +824,8 @@ class spell(object):
 
     def _first(self, source, target=[], pass_arg=None):
         """Where all first level spells are"""
-        if not isinstance(source, battleChar):
-            raise TypeError('arg source must be a battleChar obj')
+        if not isinstance(source, combatCharacter):
+            raise TypeError('arg source must be a combatCharacter obj')
         if not isinstance(target, list):
             raise TypeError('arg target must be a list')
         
@@ -521,8 +834,8 @@ class spell(object):
 
     def _second(self, source, target=[], pass_arg=None):
         """Where all second level spells are"""
-        if not isinstance(source, battleChar):
-            raise TypeError('arg source must be a battleChar obj')
+        if not isinstance(source, combatCharacter):
+            raise TypeError('arg source must be a combatCharacter obj')
         if not isinstance(target, list):
             raise TypeError('arg target must be a list')
         
@@ -531,8 +844,8 @@ class spell(object):
 
     def _third(self, source, target=[], pass_arg=None):
         """Where all third level spells are"""
-        if not isinstance(source, battleChar):
-            raise TypeError('arg source must be a battleChar obj')
+        if not isinstance(source, combatCharacter):
+            raise TypeError('arg source must be a combatCharacter obj')
         if not isinstance(target, list):
             raise TypeError('arg target must be a list')
         
@@ -541,8 +854,8 @@ class spell(object):
 
     def _fourth(self, source, target=[], pass_arg=None):
         """Where all fourth level spells are"""
-        if not isinstance(source, battleChar):
-            raise TypeError('arg source must be a battleChar obj')
+        if not isinstance(source, combatCharacter):
+            raise TypeError('arg source must be a combatCharacter obj')
         if not isinstance(target, list):
             raise TypeError('arg target must be a list')
         
@@ -551,8 +864,8 @@ class spell(object):
 
     def _fifth(self, source, target=[], pass_arg=None):
         """Where all fifth level spells are"""
-        if not isinstance(source, battleChar):
-            raise TypeError('arg source must be a battleChar obj')
+        if not isinstance(source, combatCharacter):
+            raise TypeError('arg source must be a combatCharacter obj')
         if not isinstance(target, list):
             raise TypeError('arg target must be a list')
         
@@ -561,8 +874,8 @@ class spell(object):
 
     def _sixth(self, source, target=[], pass_arg=None):
         """Where all sixth level spells are"""
-        if not isinstance(source, battleChar):
-            raise TypeError('arg source must be a battleChar obj')
+        if not isinstance(source, combatCharacter):
+            raise TypeError('arg source must be a combatCharacter obj')
         if not isinstance(target, list):
             raise TypeError('arg target must be a list')
         
@@ -571,8 +884,8 @@ class spell(object):
 
     def _seventh(self, source, target=[], pass_arg=None):
         """Where all seventh level spells are"""
-        if not isinstance(source, battleChar):
-            raise TypeError('arg source must be a battleChar obj')
+        if not isinstance(source, combatCharacter):
+            raise TypeError('arg source must be a combatCharacter obj')
         if not isinstance(target, list):
             raise TypeError('arg target must be a list')
         
@@ -581,8 +894,8 @@ class spell(object):
 
     def _eighth(self, source, target=[], pass_arg=None):
         """Where all eighth level spells are"""
-        if not isinstance(source, battleChar):
-            raise TypeError('arg source must be a battleChar obj')
+        if not isinstance(source, combatCharacter):
+            raise TypeError('arg source must be a combatCharacter obj')
         if not isinstance(target, list):
             raise TypeError('arg target must be a list')
         
@@ -591,8 +904,8 @@ class spell(object):
 
     def _ninth(self, source, target=[], pass_arg=None):
         """Where all ninth level spells are"""
-        if not isinstance(source, battleChar):
-            raise TypeError('arg source must be a battleChar obj')
+        if not isinstance(source, combatCharacter):
+            raise TypeError('arg source must be a combatCharacter obj')
         if not isinstance(target, list):
             raise TypeError('arg target must be a list')
         
@@ -600,7 +913,7 @@ class spell(object):
     # End _ninth method
 # End spell class
 
-class battleChar(object):
+class combatCharacter(object):
     """Character that is within the battle. Anything that would take or deal damage in the battle.
 
     Args:
@@ -621,12 +934,11 @@ class battleChar(object):
         - add_attack:           add an attack to the character
         - set_stats:            sets the stats of the character
         - roll_stat:            have a character do a roll for a stat
-        - get_advantage:        checks to see if character has or grants advantage
         - get_random_attack:    gets a random attack this character can do
         - get_random_action:    gets a random action dependent on characters conditions
     """
     def __init__(self, name, team, stat_dict={}, act_cat=[], act_inc=[]):
-        """Init for battleChar
+        """Init for combatCharacter
 
         Attributes:
             - _name             = (str) The character's name
@@ -874,12 +1186,12 @@ class battleChar(object):
             return (ability_score-10) // 2
         # End get_mod method
 
-        def roll_ability(self, ability, adv='norm', suppress=False, apply_bi=True):
+        def roll_ability(self, ability, adv=0, suppress=False, apply_bi=True):
             """Will have the character make an ability check of the specified ability
 
             Args:
                 - ability   = (str) The ability score to that the character is to roll for. One of [str, dex, con, int, wis, cha]
-                - adv       = (str, optional) If there should be advantage/disadvantage on the roll. One of [norm, adv, dis]. Default=norm.
+                - adv       = (int, optional) If there should be advantage/disadvantage on the roll. Advantage > 0, disadvantage < 0. Default=0
                 - suppress  = (bool, optional) If the log message should be supressed. Default=False.
                 - apply_bi  = (bool, optional) If check for bardic inspiration should be done. Default=True.
 
@@ -897,12 +1209,12 @@ class battleChar(object):
             return return_val
         # End roll_ability method
 
-        def roll_skill(self, skill, adv='norm'):
+        def roll_skill(self, skill, adv=0):
             """Will have the character make a skill check of the specified skill
 
             Args:
                 - skill = (str) The skill that the character is to roll for
-                - adv = (str, optional) If there should be advantage/disadvantage on the roll. One of [norm, adv, dis]. Default=norm.
+                - adv   = (int, optional) If there should be advantage/disadvantage on the roll. Advantage > 0, disadvantage < 0. Default=0
 
             Returns:
                 (int) The result of the roll
@@ -921,12 +1233,12 @@ class battleChar(object):
             return return_val
         # End roll_skill method
 
-        def roll_save(self, ability, adv='norm'):
+        def roll_save(self, ability, adv=0):
             """Will have the character make a saving throw of the specified ability
 
             Args:
-                - ability = (str) The ability score to that the character is to roll for. One of [str, dex, con, int, wis, cha]
-                - adv = (str, optional) If there should be advantage/disadvantage on the roll. One of [norm, adv, dis]. Default=norm.
+                - ability   = (str) The ability score to that the character is to roll for. One of [str, dex, con, int, wis, cha]
+                - adv       = (int, optional) If there should be advantage/disadvantage on the roll. Advantage > 0, disadvantage < 0. Default=0
 
             Returns:
                 (int) The result of the roll
@@ -998,8 +1310,8 @@ class battleChar(object):
                 - action_surge      = (int) The number of action surges the character has
                 - miscellaneous     = (dict of int) Any other miscellaneous resources
             """
-            if not isinstance(in_stats, battleChar.stats):
-                raise TypeError('arg in_stats must be a battleChar.stats object')
+            if not isinstance(in_stats, combatCharacter.stats):
+                raise TypeError('arg in_stats must be a combatCharacter.stats object')
             self._name = name
             self._cached_stats = {}
             self._max_hp = 1*in_stats.max_hp
@@ -1327,6 +1639,8 @@ class battleChar(object):
                 self.add_condition('unconscious', 'indefinite')
             if (name in ['paralyzed', 'petrified', 'stunned', 'unconscious']):
                 self.add_condition('incapacitated', 'indefinite')
+            if (name=='incapacitated'):
+                self.remove_condition('dodge')
             if (name=='unconscious'):
                 self.add_condition('prone', 'indefinite')
             if (name=='stabilized'):
@@ -1452,8 +1766,8 @@ class battleChar(object):
             Returns:
                 No return value
             """
-            if not isinstance(in_stats, battleChar.stats):
-                raise TypeError('arg in_stats must be a battleChar.stats obj')
+            if not isinstance(in_stats, combatCharacter.stats):
+                raise TypeError('arg in_stats must be a combatCharacter.stats obj')
             if (self.hp == 0):
                 log.resource(f'{self._name} cannot do long rest because they have 0 HP')
                 return
@@ -1515,8 +1829,8 @@ class battleChar(object):
             Returns:
                 No return value
             """
-            if not isinstance(in_stats, battleChar.stats):
-                raise TypeError('arg in_stats must be a battleChar.stats obj')
+            if not isinstance(in_stats, combatCharacter.stats):
+                raise TypeError('arg in_stats must be a combatCharacter.stats obj')
             if not isinstance(spend_dice, list):
                 raise TypeError('arg spend_dice must be a list')
             if spend_dice:
@@ -1872,13 +2186,13 @@ class battleChar(object):
             """Will look through all conditions, then update action biases because of this
 
             Args:
-                - char_obj = (battleChar obj) The object of the character; SHOULD be the character that holds this actionChooser
+                - char_obj = (combatCharacter obj) The object of the character; SHOULD be the character that holds this actionChooser
 
             Returns:
                 No return value
             """
-            if not isinstance(char_obj, battleChar):
-                raise TypeError('arg char_obj must be a battleChar.resources obj')
+            if not isinstance(char_obj, combatCharacter):
+                raise TypeError('arg char_obj must be a combatCharacter.resources obj')
             if ('druid' in char_obj.char_stats.class_level):
                 if ('shillelagh' in char_obj.char_resources.cond):
                     char_obj.char_actions.change_bias({'cast_shillelagh':0})
@@ -2053,33 +2367,29 @@ class battleChar(object):
         if ('speed' in stat_dict):
             self.char_resources._speed = 1*stat_dict['speed']
             self.char_resources.movement = min(self.char_resources.movement, stat_dict['speed'])
+            if (stat_dict['speed']==0):
+                self.char_resources.remove_condition('dodge')
         log.stat(f'set {self._name} stats: {stat_dict}')
     # End set_stats method
 
-    def roll_stat(self, name, adv='norm'):
+    def roll_stat(self, name, adv=0):
         """Have the character do a ability check, skill check, or saving throw. Will be affected by conditions.
 
         Args:
-            - name = (str) The stat to roll. If an ability or skill check, just give the name. If a saving throw, give {ability} save
-            - adv = (str, optional) If there should be advantage/disadvantage on the roll. One of [norm, adv, dis]. Default=norm.
+            - name  = (str) The stat to roll. If an ability or skill check, just give the name. If a saving throw, give {ability} save
+            - adv   = (int, optional) If there should be advantage/disadvantage on the roll. Advantage > 0, disadvantage < 0. Default=0
 
         Returns:
             (int) The result of the roll
         """
         if not isinstance(name, str):
             raise TypeError('arg name must be a str')
-        if (adv not in ['norm', 'adv', 'dis']):
-            raise TypeError('arg adv must be one of [norm, adv, dis]')
+        if not isinstance(adv, int):
+            raise TypeError('arg adv must be an int')
 
         def _overlap(in_set):
             return not (set(self.char_resources.cond).isdisjoint(in_set))
         # End _overlap inner function
-
-        def _convert(in_int):
-            return 'adv' if (in_int > 0) else ('dis' if (in_int < 0) else 'norm')
-        # End _conver inner function
-
-        true_adv = 1 if (adv=='adv') else (-1 if (adv=='dis') else 0)
 
         # 20230928 Currently doing a blanket fail for certain conditions, don't know how to handle the specifics yet
         split_list = name.split(' ')
@@ -2087,12 +2397,16 @@ class battleChar(object):
             # Handle saving throws
             if split_list[1]:
                 if ((split_list[0] in ['str, dex']) and _overlap({'paralyzed', 'petrified', 'stunned', 'unconscious'})):
-                    log.check(f'{self._name} automatically fails saving throw because of a condition')
+                    log.save(f'{self._name} automatically fails saving throw because of a condition')
                     return AUTO_FAIL
-                if ((split_list[0]=='dex') and _overlap({'restrained'})):
-                    log.check(f'{self._name} has disadvantage on saving throw because of a condition')
-                    true_adv -= 1
-                return_val = self.char_stats.roll_save(split_list[0], _convert(true_adv))
+                if (split_list[0]=='dex'):
+                    if _overlap({'restrained'}):
+                        log.save(f'{self._name} has disadvantage on dex saving throw because of restrained')
+                        adv -= 1
+                    elif _overlap({'dodge'}):
+                        log.save(f'{self._name} had advantage on dex saving throw because they are dodging')
+                        adv += 1
+                return_val = self.char_stats.roll_save(split_list[0], adv=adv)
             
             # Handle ability check
             else:
@@ -2101,8 +2415,8 @@ class battleChar(object):
                     return AUTO_FAIL
                 if _overlap({'charmed', 'frightened', 'poisoned'}):
                     log.check(f'{self._name} has disadvantage on ability check because of a condition')
-                    true_adv -= 1
-                return_val = self.char_stats.roll_ability(split_list[0], _convert(true_adv))
+                    adv -= 1
+                return_val = self.char_stats.roll_ability(split_list[0], adv=adv)
 
         # Handle skill check
         elif (split_list[0] in SKILLS):
@@ -2111,8 +2425,8 @@ class battleChar(object):
                 return AUTO_FAIL
             if _overlap({'charmed', 'frightened', 'poisoned'}):
                 log.check(f'{self._name} has disadvantage on skill check because of a condition')
-                true_adv -= 1
-            return_val = self.char_stats.roll_skill(split_list[0], _convert(true_adv))
+                adv -= 1
+            return_val = self.char_stats.roll_skill(split_list[0], adv=adv)
         
         else:
             raise ValueError('arg name was not an ability or skill')
@@ -2126,41 +2440,6 @@ class battleChar(object):
 
         return return_val
     # End roll_stat method
-
-    def get_advantage(self, is_source):
-        """If the character gets or grants advantage due to current condition.
-
-        Args:
-            - is_source = (bool) If the character is the source (the one doing an attack) or the target (the one being attacked)
-
-        Returns:
-            (int) 1 if there should be advantage, -1 if there should be disadvantage, otherwise 0
-        """
-        def _overlap(in_set):
-            return not (set(self.char_resources.cond).isdisjoint(in_set))
-        # End _overlap inner function
-
-        return_val = 0
-        # If the character is the source
-        if is_source:
-            if _overlap({'blinded', 'frightened', 'prone', 'restrained'}):
-                log.hit(f'{self._name} has disadvantage because of a condition')
-                return_val -= 1
-            if _overlap({'invisible'}):
-                log.hit(f'{self._name} has advantage because of a condition')
-                return_val += 1
-        # End source branch
-
-        # If the character is the target
-        else:
-            if _overlap({'invisible', 'prone'}):
-                log.hit(f'{self._name} grants disadvantage because of a condition')
-                return_val -= 1
-            if _overlap({'blinded', 'paralyzed', 'petrified', 'restrained', 'stunned', 'unconscious'}):
-                log.hit(f'{self._name} grants advantage because of a condition')
-                return_val += 1
-        return max(-1, min(1, return_val))
-    # End get_advantage method
 
     def get_random_attack(self):
         """Gets a random attack of this character, weighted by the biases
@@ -2247,10 +2526,10 @@ class battleChar(object):
         log.simulatn(f'{self._name} fell through when looking for a random {act_type} action')
         return None
     # End get_random_action method
-# End battleChar class
+# End combatCharacter class
 
-class battleStage(object):
-    """The object that handles all the battleChar and interactions between them.
+class combat(object):
+    """The object that handles all the combatCharacter and interactions between them.
 
     Args:
         - in_json = (str, optional) Path of a json to load automaticall add all characters. Default=''
@@ -2259,29 +2538,29 @@ class battleStage(object):
         characterAction:    action that a character can do
 
     Methods:
-        - add_char:                 adds a new character to the battle
-        - reset_battle:             restores all characters to full
-        - _log_hp:                  logs the current HP of a character
-        - log_hp:                   logs the current HP of all characters
-        - set_initiative:           sets the initiative order
-        - _get_next_in_initiative:  gets the next person in initiative order
-        - _remove_valid:            removes character from valid list
-        - _get_rand_valid:          get a random character from the valid lists
-        - _add_time:                add to estimated time
-        - get_targets_for_action:   get the targets for an action
-        - char_do_action:           have specified character do an action
-        - char_do_random_action:    have the specified character do a random action
-        - simulate_round:           simulate one round of combat
-        - simulate_to_end:          simulate until end of combat
+        - add_char                  :adds a new character to the battle
+        - reset_battle              :restores all characters to full
+        - _log_hp                   :logs the current HP of a character
+        - log_combat_hp             :logs the current HP of all characters
+        - set_initiative            :sets the initiative order
+        - _get_next_in_initiative   :gets the next person in initiative order
+        - _remove_valid             :removes character from valid list
+        - _get_rand_valid           :get a random character from the valid lists
+        - _add_time                 :add to estimated time
+        - get_targets_for_action    :get the targets for an action
+        - char_do_action            :have specified character do an action
+        - char_do_random_action     :have the specified character do a random action
+        - simulate_round            :simulate one round of combat
+        - simulate_to_end           :simulate until end of combat
     """
     def __init__(self, in_json='characters.json'):
-        """Init for battleStage
+        """Init for combat
 
         Attributes:
             - battlevalid       = (bool) If the battle is valid and can be simulated
             - round             = (int) What round the battle is in
             - _name_spacing     = (int) The length of the longest name of all characters
-            - characters        = (dict of battleChar objects) All characters in the battle
+            - characters        = (dict of combatCharacter objects) All characters in the battle
             - _valid_good       = (list of str) All good characters that can be targeted
             - _valid_bad        = (list of str) All bad characters that can be targeted
             - initiative        = (list of tuple) The initiative order of all characters
@@ -2329,12 +2608,13 @@ class battleStage(object):
             - name = (str) The name of the action to add, which will be taken from actions.json
 
         Methods:
-            - _do_attack:   do an attack
-            - _do_spell:    do a spell
-            - _do_move:     do movement
-            - _do_stat:     do stat change
-            - _do_special:  do a special action
-            - do_action:    does this action
+            - _log_attack_picture   :logs the infographic of the attack
+            - _do_attack            :do an attack
+            - _do_spell             :do a spell
+            - _do_move              :do movement
+            - _do_stat              :do stat change
+            - _do_special           :do a special action
+            - do_action             :does this action
         """
         def __init__(self, name):
             """Init of characterAction
@@ -2363,73 +2643,48 @@ class battleStage(object):
             raise Exception(f'could not find action {name} in actions.json')
         # End __init__
 
-        def _do_attack(self, source, target, in_attack, offhand=False):
+        def _log_attack_picture(self, source, target, in_attack, crit, attack_roll, hit, damage, actual_damage, hp):
             """Have the source character do specified attack on target character
 
             Args:
-                - source    = (battleChar obj) The source of the attack
-                - target    = (battleChar obj) The target of the attack
-                - in_attack = (attack obj) The attack obj of this attack
-                - offhand   = (bool, optional) If this attack was done with the offhand. Default=False.
+                - source        = (str) The name of the attacker
+                - target        = (str) The name of the attacker
+                - in_attack     = (str) The name of the attack
+                - crit          = (str) If the attack was a crit
+                - attack_roll   = (int) The result of the attack roll
+                - hit           = (bool) If the attack was a hit
+                - damage        = (dict) The damage of the attack
+                - actual_damage = (int) The actual damage the target took
+                - hp            = (int) The HP of the target after the attack
 
             Returns:
-                (int) The current HP of the target after the attack
+                No return value
             """
-            if not isinstance(source, battleChar):
-                raise TypeError('arg source must be a battleChar obj')
-            if not isinstance(target, battleChar):
-                raise TypeError('arg target must be a battleChar obj')
-            if not isinstance(in_attack, attack):
-                raise TypeError('arg in_attack must be an attack obj')
-
-            # Attack roll
-            advantage = source.get_advantage(True) + target.get_advantage(False)
-            if (advantage > 0):
-                log.hit(f'{source._name} has advantage on their attack roll')
-                adv = 'adv'
-            elif (advantage < 0):
-                log.hit(f'{source._name} has disadvantage on their attack roll')
-                adv = 'dis'
-            else:
-                adv = 'norm'
-            roll_result = in_attack.roll_hit(character=source, adv=adv)
-
-            if ((roll_result[0]=='miss') or (roll_result[1]<target.char_stats.ac)):
-                log.hit(f'{source._name} misses {target._name}')
-                hit = False
-            else:
-                log.hit(f'{source._name} hits {target._name}')
-                hit = True
-
-            # Damage roll
-            if hit:
-                damage = in_attack.roll_damage(char_obj=source, offhand=offhand, crit=(roll_result[0]=='hit'))
-                (act_damage, return_val) = target.take_damage(damage=damage, was_crit=(roll_result[0]=='hit'))
-            else:
-                act_damage = 0
-                return_val = target.char_resources.hp
-
-            # Create picture
+            if not ATTACK_PICTURES:
+                return
             str_list = ['' for i in range(5)]
             # Source
-            largest_spacing = max(len(source._name), len(in_attack.name))
+            largest_spacing = max(len(source), len(in_attack))
             str_list[0] += '='*(largest_spacing + 1)
-            str_list[1] += f'{source._name:^{largest_spacing}} '
+            str_list[1] += f'{source:^{largest_spacing}} '
             str_list[2] += f'{" "*largest_spacing} '
-            str_list[3] += f'{in_attack.name:^{largest_spacing}} '
+            str_list[3] += f'{in_attack:^{largest_spacing}} '
             str_list[4] += '='*(largest_spacing + 1)
+
             # Hit
-            str_list[0] += '='*10
-            str_list[1] += ' '*10
-            str_list[2] += f'{("CRIT HIT" if (roll_result[0]=="hit") else ("CRIT MISS" if (roll_result[0]=="miss") else f"{roll_result[1]} Hit")):^9} '
-            str_list[3] += ' '*10
-            str_list[4] += '='*10
+            str_list[0] += '='*11
+            str_list[1] += ' '*11
+            str_list[2] += f'{("CRIT HIT" if (crit=="hit") else ("CRIT MISS" if (crit=="miss") else f"{attack_roll} to hit")):^10} '
+            str_list[3] += ' '*11
+            str_list[4] += '='*11
+
             # Left arrow
             str_list[0] += '='*4
             str_list[1] += ' '*4
             str_list[2] += f'--{"-" if hit else ">"} '
             str_list[3] += ' '*4
             str_list[4] += '='*4
+
             # Damage
             if hit:
                 largest_spacing = 0
@@ -2454,28 +2709,73 @@ class battleStage(object):
                 str_list[2] += f'{second_str:^{largest_spacing}}' if (line_count==3) else f'{first_str:^{largest_spacing}}'
                 str_list[3] += f'{third_str:^{largest_spacing}}' if (line_count==3) else (f'{second_str:^{largest_spacing}}' if (line_count==2) else ' '*largest_spacing)
                 str_list[4] += '='*largest_spacing
+
                 # Right arrow
                 str_list[0] += '====='
                 str_list[1] += '     '
                 str_list[2] += ' --> '
                 str_list[3] += '     '
                 str_list[4] += '====='
+
+            # No damage
             else:
-                str_list[0] += '=='
-                str_list[1] += 'X '
-                str_list[2] += 'X '
-                str_list[3] += 'X '
-                str_list[4] += '=='
+                str_list[0] += '======'
+                str_list[1] += 'X     '
+                str_list[2] += 'X     '
+                str_list[3] += 'X     '
+                str_list[4] += '======'
+
             # Target
-            largest_spacing = max(len(target._name), 6)
+            largest_spacing = max(len(target), 6)
             str_list[0] += '='*largest_spacing
-            str_list[1] += f'{target._name:^{largest_spacing}}'
-            str_list[2] += f'{("-" + str(act_damage)):^{largest_spacing}}'
-            str_list[3] += f'{(str(return_val) + " HP"):^{largest_spacing}}'
+            str_list[1] += f'{target:^{largest_spacing}}'
+            str_list[2] += f'{("-" + str(actual_damage)):^{largest_spacing}}'
+            str_list[3] += f'{(str(hp) + " HP"):^{largest_spacing}}'
             str_list[4] += '='*largest_spacing
+
+            # Log
             for i in str_list:
                 log.picture(i)
+        # End _log_attack_picture method
 
+        def _do_attack(self, source, target, in_attack, pass_arg={}):
+            """Have the source character do specified attack on target character
+
+            Args:
+                - source    = (combatCharacter obj) The source of the attack
+                - target    = (combatCharacter obj) The target of the attack
+                - in_attack = (attack obj) The attack obj of this attack
+                - pass_arg  = (dict, optional) Any additional information that needs to be passed to the attack obj
+
+            Returns:
+                (int) The current HP of the target after the attack
+            """
+            if not isinstance(source, combatCharacter):
+                raise TypeError('arg source must be a combatCharacter obj')
+            if not isinstance(target, combatCharacter):
+                raise TypeError('arg target must be a combatCharacter obj')
+            if not isinstance(in_attack, attack):
+                raise TypeError('arg in_attack must be an attack obj')
+
+            # Attack roll
+            roll_result = in_attack.roll_hit(source=source, target=target, pass_arg=pass_arg)
+            if ((roll_result[0]=='miss') or (roll_result[1]<target.char_stats.ac)):
+                log.hit(f'{source._name} misses {target._name}')
+                hit = False
+            else:
+                log.hit(f'{source._name} hits {target._name}')
+                hit = True
+
+            # Damage roll
+            if hit:
+                damage = in_attack.roll_damage(source=source, target=target, crit=(roll_result[0]=='hit'), pass_arg=pass_arg)
+                (actual_damage, return_val) = target.take_damage(damage=damage, was_crit=(roll_result[0]=='hit'))
+            else:
+                damage = {}
+                actual_damage = 0
+                return_val = target.char_resources.hp
+
+            self._log_attack_picture(source._name, target._name, in_attack.name, roll_result[0], roll_result[1], hit, damage, actual_damage, return_val)
             return return_val
         # End _do_attack method
 
@@ -2483,14 +2783,14 @@ class battleStage(object):
             """Have the specified character do a spell against the specified target
 
             Args:
-                - source    = (battleChar obj) The character casting the spell
-                - target    = (list of battleChar obj, optional) The characters being target by the spell. Default=[]
+                - source    = (combatCharacter obj) The character casting the spell
+                - target    = (list of combatCharacter obj, optional) The characters being target by the spell. Default=[]
 
             Returns:
                 (dict) The effects that have happened to all targets
             """
-            if not isinstance(source, battleChar):
-                raise TypeError('arg source must be a battleChar obj')
+            if not isinstance(source, combatCharacter):
+                raise TypeError('arg source must be a combatCharacter obj')
             if not isinstance(target, list):
                 raise TypeError('arg target must be a list')
 
@@ -2504,15 +2804,15 @@ class battleStage(object):
             20230928 Currently does nothing to determine terrain types
 
             Args:
-                - source    = (battleChar obj) The character moving
+                - source    = (combatCharacter obj) The character moving
                 - distance  = (int) The distance the character is trying to move
                 - difficult = (bool, optional) If currently moving through difficult terrain. Default=False.
 
             Returns:
                 (float) The actual distance travelled
             """
-            if not isinstance(source, battleChar):
-                raise TypeError('arg source must be a battleChar obj')
+            if not isinstance(source, combatCharacter):
+                raise TypeError('arg source must be a combatCharacter obj')
             divisor = 2 if difficult else 1
             if (self._name in ['climb', 'crawl', 'swim']):
                 divisor += 1
@@ -2525,17 +2825,17 @@ class battleStage(object):
             """Do a stats action
 
             Args:
-                - source    = (battleChar obj) The source character
-                - target    = (battleChar obj) The target character
+                - source    = (combatCharacter obj) The source character
+                - target    = (combatCharacter obj) The target character
 
             Returns:
                 (str) Name of the effect or stat change
             """
-            if not isinstance(source, battleChar):
-                raise TypeError('arg source must be an battleChar obj')
-            if not isinstance(target, battleChar):
-                raise TypeError('arg target must be an battleChar obj')
-            
+            if not isinstance(source, combatCharacter):
+                raise TypeError('arg source must be an combatCharacter obj')
+            if not isinstance(target, combatCharacter):
+                raise TypeError('arg target must be an combatCharacter obj')
+
             if (self._name=='bardic_inspiration'):
                 source_level = source.char_stats.class_level['bard']
                 if (source_level >= 15):
@@ -2548,20 +2848,22 @@ class battleStage(object):
                     prop = '1d6'
                 target.char_resources.add_condition(name='bardic_inspiration', duration='10 minute', prop=prop)
                 return 'bardic_inspiration'
+            if (self._name=='dodge'):
+                source.char_resources.add_condition('dodge', '1 sont')
         # End _do_stats method
 
         def _do_special(self, source, pass_arg=None):
             """All special actions that do not fall into other categories.
 
             Args:
-                - source    = (battleChar obj) Character that does this action
+                - source    = (combatCharacter obj) Character that does this action
                 - pass_arg  = (any, optional) Any args that you would need to pass to sub function
 
             Returns:
                 (dict) All characters affected by this action, and what happened to them
             """
-            if not isinstance(source, battleChar):
-                raise TypeError('arg source must be a battleChar obj')
+            if not isinstance(source, combatCharacter):
+                raise TypeError('arg source must be a combatCharacter obj')
             if (self._name=='long_rest'):
                 source.char_resources.long_rest(source.char_stats)
                 return {source._name: 0}
@@ -2585,17 +2887,17 @@ class battleStage(object):
             looping on itself if necessary.
 
             Args:
-                - source    = (battleChar obj) The source of the action
-                - target    = (list of battleChar obj, optional) The target of the action. Default=[]
+                - source    = (combatCharacter obj) The source of the action
+                - target    = (list of combatCharacter obj, optional) The target of the action. Default=[]
                 - pass_arg  = (any, optional) Any args you would need to pass to sub action
 
             Returns:
                 (dict) All characters affected by this action, and what happened to them
             """
-            if not isinstance(source, battleChar):
-                raise TypeError('arg source must be a battleChar obj')
+            if not isinstance(source, combatCharacter):
+                raise TypeError('arg source must be a combatCharacter obj')
             if not isinstance(target, list):
-                raise TypeError('arg target must be a list of battleChar obj')
+                raise TypeError('arg target must be a list of combatCharacter obj')
 
             return_val = {}
             if (self._handle == 'attack'):
@@ -2643,9 +2945,14 @@ class battleStage(object):
                     attack_count = 2 * attack_count
                 for i in range(attack_count):
                     this_target = target[i%target_len]
-                    if not isinstance(this_target, battleChar):
-                        raise TypeError('target is not a battleChar')
-                    return_val[this_target._name] = self._do_attack(source=source, target=this_target, in_attack=this_attack, offhand=(self._name=='offhand_attack'))
+                    if not isinstance(this_target, combatCharacter):
+                        raise TypeError('element in target list is not a combatCharacter')
+                    # Check if offhand
+                    if (self._name=='offhand_attack'):
+                        attack_arg = {'offhand':True}
+                    else:
+                        attack_arg = {}
+                    return_val[this_target._name] = self._do_attack(source=source, target=this_target, in_attack=this_attack, pass_arg=attack_arg)
             # End if handle==attack branch
 
             elif (self._handle == 'spell'):
@@ -2656,9 +2963,13 @@ class battleStage(object):
             # End if handle==move branch
 
             elif (self._handle == 'stat'):
+                # If no target, assume that the target is self
+                if not target:
+                    log.debug('no target supplied for stat action; assuming self')
+                    target = [source]
                 for i_target in target:
-                    if not isinstance(i_target, battleChar):
-                        raise TypeError('target is not a battleChar')
+                    if not isinstance(i_target, combatCharacter):
+                        raise TypeError('target is not a combatCharacter')
                     return_val[i_target._name] = self._do_stat(source=source, target=i_target)
 
             else:
@@ -2673,14 +2984,14 @@ class battleStage(object):
         Args:
             - name      = (str) The name of the character
             - team      = (str) The team of the character. One of [pc, ally, enemy]
-            - stats     = (dict, optional) Stats of the character. See battleChar.set_stats method
-            - attacks   = (dict, optional) Attacks of the character. See battleChar.add_attack method
-            - actions   = (dict, optional) Actions of the character. See battleChar.actionChooser.add_action method
-            - bias      = (dict, optional) Any bias changes for actions. See battleChar.actionChooser.change_bias method
-            - act_cat   = (list of str, optional) Which category of actions to automatically include. See battleChar.actionChooser.__init__
-            - act_inc   = (list of str, optional) Which individual actions to automatically include. See battleChar.actionChooser.__init__
-            - res_inc   = (list of str, optional) Add special resources. See battleChar.resources.add_miscellaneous method
-            - prop      = (dict, optional) Add properties. See battleChar.stats.add_property method
+            - stats     = (dict, optional) Stats of the character. See combatCharacter.set_stats method
+            - attacks   = (dict, optional) Attacks of the character. See combatCharacter.add_attack method
+            - actions   = (dict, optional) Actions of the character. See combatCharacter.actionChooser.add_action method
+            - bias      = (dict, optional) Any bias changes for actions. See combatCharacter.actionChooser.change_bias method
+            - act_cat   = (list of str, optional) Which category of actions to automatically include. See combatCharacter.actionChooser.__init__
+            - act_inc   = (list of str, optional) Which individual actions to automatically include. See combatCharacter.actionChooser.__init__
+            - res_inc   = (list of str, optional) Add special resources. See combatCharacter.resources.add_miscellaneous method
+            - prop      = (dict, optional) Add properties. See combatCharacter.stats.add_property method
             - instances = (int, optional) The number of instances of this character to do. Default=1.
 
         Returns:
@@ -2689,7 +3000,7 @@ class battleStage(object):
         def _create_char(nam):
             if (nam in self.characters):
                 raise ValueError(f'character {nam} already exists')
-            new_char = battleChar(name=nam, team=team, stat_dict=stats, act_cat=act_cat, act_inc=act_inc)
+            new_char = combatCharacter(name=nam, team=team, stat_dict=stats, act_cat=act_cat, act_inc=act_inc)
             if prop:
                 new_char.char_stats.add_property(prop)
             if res_inc:
@@ -2771,18 +3082,22 @@ class battleStage(object):
         if (character not in self.characters):
             raise ValueError(f'{character} is not a valid character')
         char_obj = self.characters[character]
-        if not isinstance(char_obj, battleChar):
-            raise TypeError(f'{character} has its corresponding obj not as battleChar')
-        
-        max_hp = char_obj.char_stats.max_hp
+        if not isinstance(char_obj, combatCharacter):
+            raise TypeError(f'{character} has its corresponding obj not as combatCharacter')
+
         current_hp = char_obj.char_resources.hp
-        blocks = int(20 * current_hp / max_hp)
-        space = ' ' * (20 - blocks)
-        blocks = '|' * blocks
-        log.picture(f'{character:>{self._name_spacing}} HP = {current_hp:4} [{space}{blocks}]')
+        if ('death' in char_obj.char_resources.cond):
+            bar = '          DEAD           '
+        else:
+            max_hp = char_obj.char_stats.max_hp
+            blocks = int(25 * current_hp / max_hp)
+            space = ' ' * (25 - blocks)
+            blocks = '|' * blocks
+            bar = f'{space}{blocks}'
+        log.picture(f'{character:>{self._name_spacing}} HP = {current_hp:4} [{bar}]')
     # End _log_hp method
 
-    def log_hp(self):
+    def log_combat_hp(self):
         """Logs the HP of every character
 
         Args:
@@ -2793,11 +3108,17 @@ class battleStage(object):
         """
         pc_list = []
         ally_list = []
-        for i_char in self._valid_good:
-            if (self.characters[i_char].team=='pc'):
-                pc_list.append(i_char)
+        enemy_list = []
+        for i_name, i_obj in self.characters.items():
+            if (i_obj.team=='pc'):
+                pc_list.append(i_name)
+            elif (i_obj.team=='ally'):
+                if (i_name in self._valid_good):
+                    ally_list.append(i_name)
             else:
-                ally_list.append(i_char)
+                if (i_name in self._valid_bad):
+                    enemy_list.append(i_name)
+
         log.picture('PLAYER CHARACTERS')
         for i_char in pc_list:
             self._log_hp(i_char)
@@ -2805,9 +3126,9 @@ class battleStage(object):
         for i_char in ally_list:
             self._log_hp(i_char)
         log.picture('ENEMY NON-PLAYER CHARACTERS')
-        for i_char in self._valid_bad:
+        for i_char in enemy_list:
             self._log_hp(i_char)
-    # End log_hp method
+    # End log_combat_hp method
 
     def set_initiative(self):
         """Have all characters roll for initiative, and save the initiative order. Repopulates attributes _valid_good and _valid_bad.
@@ -2833,7 +3154,7 @@ class battleStage(object):
                 self._valid_good.append(i_character)
         self.initiative.sort(key=by_second, reverse=True)
         log.battle(f'Initiative order: {self.initiative}')
-        self.log_hp()
+        self.log_combat_hp()
         log.battle('================================================================')
         log.battle('========================= BATTLE START =========================')
         log.battle('================================================================\n')
@@ -2929,7 +3250,7 @@ class battleStage(object):
         if (self.characters[character].team == 'pc'):
             return_val = 10
         else:
-            return_val = 4
+            return_val = 5
 
         if (action_handle=='attack'):
             return_val = int(return_val * 1.5)
@@ -2973,14 +3294,14 @@ class battleStage(object):
         if (source not in self.characters):
             raise ValueError(f'battle does not have a character {source}')
         source_obj = self.characters[source]
-        if not isinstance(source_obj, battleChar):
-            raise TypeError(f'{source} has its matching obj not as battleChar')
+        if not isinstance(source_obj, combatCharacter):
+            raise TypeError(f'{source} has its matching obj not as combatCharacter')
         if (name not in self.cached_actions):
             self.cached_actions[name] = self.characterAction(name=name)
             log.debugall(f'cached action {name}')
         action_todo = self.cached_actions[name]
         if not isinstance(action_todo, self.characterAction):
-            raise TypeError(f'{name} has its matching obj not as battleStage.characterAction')
+            raise TypeError(f'{name} has its matching obj not as combat.characterAction')
         if (not source_obj.char_actions.can_do_action(name)):
             raise ValueError(f'{source} cannot do action {name}')
         action_cost = action_todo._cost
@@ -3110,8 +3431,8 @@ class battleStage(object):
         if (source not in self.characters):
             raise ValueError(f'{source} is not a valid character')
         source_obj = self.characters[source]
-        if not isinstance(source_obj, battleChar):
-            raise TypeError(f'{source} has its matching obj not as battleChar')
+        if not isinstance(source_obj, combatCharacter):
+            raise TypeError(f'{source} has its matching obj not as combatCharacter')
         log.simulatn(f'{source} is going to do a {act_type} action')
         random_action = source_obj.get_random_action(act_type=act_type)
         if not random_action:
@@ -3136,8 +3457,8 @@ class battleStage(object):
         if (character not in self.characters):
             raise ValueError(f'{character} is not a valid character')
         char_obj = self.characters[character]
-        if not isinstance(char_obj, battleChar):
-            raise TypeError(f'{character} has its obj not a battleChar')
+        if not isinstance(char_obj, combatCharacter):
+            raise TypeError(f'{character} has its obj not a combatCharacter')
         
         return_val = 0
         log.turn(f'Starting turn of {character} at {round(self.estimated_time / 60, 2)} minutes')
@@ -3185,7 +3506,7 @@ class battleStage(object):
                 break
         log.round(f'============= Finished round {self.round} (took {round(elapsed_time / 60, 2)} minutes) =============')
         log.round(f'Battle has taken {round(self.estimated_time / 60, 2)} minutes so far')
-        self.log_hp()
+        self.log_combat_hp()
         log.round(f'================================================================\n')
         self.round += 1
     # End simulate round method
@@ -3210,37 +3531,7 @@ class battleStage(object):
         log.battle(f'Finished combat after {return_val} rounds (estimated time={round(self.estimated_time / 60, 2)} minutes)')
         return return_val
     # End simulate_to_end method
-# End battleStage class
-
-################################################################################################################################
-#=========================================================== CUSTOM ===========================================================
-################################################################################################################################
-
-def custom_spell(name, source, target=[], pass_arg=None):
-    """The effect of a custom spell. You should create an if-branch for each spell
-
-    Args:
-        - name = (str) The name of the spell
-        - source = (battleChar obj) The character that is casting the spell
-        - target = (list of battleChar obj, optional) The target characters of the spell. Default=[]
-        - pass_arg = (any, optional) Any additional arguments that the spell needs. Default=None.
-
-    Returns: (dict) Results for each target
-        - Key                           | Value
-        - {name of affected character}  | (str) What happened to the character
-    """
-    if not isinstance(name, str):
-        raise TypeError('arg name must be a str')
-    if not isinstance(source, battleChar):
-        raise TypeError('arg source must be a battleChar obj')
-    if not isinstance(target, list):
-        raise TypeError('arg target must be a list of battleChar obj')
-
-    if name == 'unstoppable':
-        return {f'{source._name}': 'unstoppable condition'}
-
-    raise ValueError(f'could not find custom spell {name}')
-# End custom_spell
+# End combat class
 
 ################################################################################################################################
 #============================================================ MAIN ============================================================
@@ -3255,12 +3546,11 @@ def main():
     Returns:
         None
     """
-    battle = battleStage()
+    battle = combat()
     try:
         battle.simulate_to_end()
     except Exception as err:
         log.exception('ended early because of exception', exc_info=err)
-    log.header('.\n.\n.\n.')
 # End main
 
 if __name__ == '__main__':

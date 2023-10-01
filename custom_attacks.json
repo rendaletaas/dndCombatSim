@@ -1,0 +1,34 @@
+[
+    {
+        "name": "claw",
+        "ability": "str",
+        "damagedice": ["1d6 str slashing"],
+        "type": ["all"],
+        "hitmod": 0,
+        "multi": 2
+    },
+    {
+        "name": "kick",
+        "ability": "str",
+        "damagedice": ["1d10 str bludgeoning"],
+        "type": ["all"],
+        "hitmod": 0,
+        "multi": 1
+    },
+    {
+        "name": "pact_longbow",
+        "ability": "dex",
+        "damagedice": ["1d8+1 dex m_piercing"],
+        "type": ["longbow", "martial_weapon", "martial_ranged_weapon"],
+        "hitmod": 1,
+        "multi": 1
+    },
+    {
+        "name": "slam",
+        "ability": "str",
+        "damagedice": ["1d8 str thunder"],
+        "type": ["all"],
+        "hitmod": 0,
+        "multi": 2
+    }
+]
