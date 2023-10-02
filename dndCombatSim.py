@@ -2,17 +2,19 @@
 # description:  Script to simulate DnD combat
 # author:       Taas, Rendale Mark
 # created:      20230925
-# last edited:  20230930
+# last edited:  20231001
 
 """Script that will simulate DnD combat.
 To do:
     Movement
     Wild shape
+    Finish condition refactor
 
 Functions:
     custom_hit_conditions
     custom_conditional_damage
     custom_spell
+    custom_condition
     roll_20
     roll_d
     _parse_d
@@ -39,11 +41,17 @@ import time
 import random
 import math
 import json
-import custom_logging
+import argparse
+import customLogging
 
 ################################################################################################################################
 #=========================================================== SET UP ===========================================================
 ################################################################################################################################
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--json', dest='charJson', action='store', default='characters.json', help='Which json to load for the characters')
+parser.add_argument('--num', '-n', type=int, dest='numRounds', action='store', default=100, help='The maximum number of rounds to simulate')
+parser.add_argument('--noPict', dest='noPicture', action='store_true', help='If the attack picture should be generated')
 
 ABILITIES = ['str', 'dex', 'con', 'int', 'wis', 'cha']
 SKILLS = {
@@ -58,24 +66,21 @@ AUTO_FAIL = -100
 TIME_UNITS = {'round':6, 'second':1, 'minute':60, 'hour':3600, 'day':86400, 'sont':3, 'eont':3}
 
 current_time = time.strftime('%Y%m%d%H%M%S', time.localtime())
-if not custom_logging.os.path.exists('./logs'):
+if not customLogging.os.path.exists('./logs'):
     os.mkdir('./logs')
     print('Created logs folder')
-
-# If you want to do attack pictures
-ATTACK_PICTURES = True
 
 # If you wish to change the verbosity, modify the third argument for the log and the fourth argument for the console. Available levels are found in custom_logging.py
 # You can also comment to one of the presets
 
 # Default verbosity
-#log = custom_logging.create_custom_logger_with_handler('battle', f'./logs/battle{current_time}.log', 'roll', 'picture', False, False)
+#log = customLogging.create_custom_logger_with_handler('battle', f'./logs/battle{current_time}.log', 'roll', 'picture', False, False)
 
 # For debugging script
-#log = custom_logging.create_custom_logger_with_handler('battle', f'./logs/battle{current_time}.log', 'debugall', 'conditn', False, False)
+log = customLogging.create_custom_logger_with_handler('battle', f'./logs/battle{current_time}.log', 'debugall', 'conditn', False, False)
 
 # Minimal messages
-log = custom_logging.create_custom_logger_with_handler('battle', f'./logs/battle{current_time}.log', 'simulatn', 'picture', False, False)
+#log = customLogging.create_custom_logger_with_handler('battle', f'./logs/battle{current_time}.log', 'simulatn', 'picture', False, False)
 
 ################################################################################################################################
 #====================================================== CUSTOM FUNCTIONS ======================================================
@@ -156,7 +161,7 @@ def custom_conditional_damage(attack, source, target, crit=False, pass_arg={}):
 # End custom_conditional_damage fuction
 
 def custom_spell(name, source, target=[], pass_arg=None):
-    """The effect of a custom spell. You should create an if-branch for each spell
+    """The effect of a custom spell. You should create an if-branch for each spell. See spell.do_spell method.
 
     Args:
         - name = (str) The name of the spell
@@ -179,7 +184,13 @@ def custom_spell(name, source, target=[], pass_arg=None):
         return {f'{source._name}': 'unstoppable condition'}
 
     raise ValueError(f'could not find custom spell {name}')
-# End custom_spell
+# End custom_spell function
+
+def custom_condition(name, character, pass_arg):
+    """The effect of a custom condition. You should create an if-branch for each condition. See  
+    """
+    return
+# End custom_condition function
 
 ################################################################################################################################
 #========================================================== FUNCTIONS ==========================================================
@@ -327,6 +338,10 @@ def _create_attack(name, in_json='attacks.json'):
 #=========================================================== CLASSES ===========================================================
 ################################################################################################################################
 
+################################################################
+#=========================== ATTACK ===========================
+################################################################
+
 class attack(object):
     """Logic for performing an attack.
 
@@ -342,14 +357,26 @@ class attack(object):
 
     Methods:
         - _comprehend_damage_str    :(static) parse a damage string
+
         - _hit_conditions           :check conditions of character to modify hit
         - _hit_proficiency          :check proficiencies of character to see if they can add their proficiency modifier
         - roll_hit                  :have the attack roll to hit
+
         - _conditional_damage       :get additional damage given certain conditions
         - roll_damage               :have the attack roll for damage
     """
     def __init__(self, name, ability, damagedice, prof, hitmod=0, multi=1, properties=[], custom=False):
         """Init for attack
+
+        Args:
+            - name = (str) Name of the attack
+            - ability = (str) Ability that this attack uses for its attack roll. One of [str, dex, con, int, wis, cha]
+            - damagedice = (list of str) A list of each dice for the damage, in {ability} #d#+# {type} format. Example: str 1d12+1 slashing. You can also omit ability
+                and a + modifier.
+            - prof = (list of str) What type of attack this is to determine if user has proficiency
+            - hitmod = (int, optional) Additional modifier to the attack roll. Default=0.
+            - multi = (int, optional) If not Default=1, this is a multiattack that will do individual attack rolls.
+            - properties = (list of str, optional) Additional properties for this attack. Default=[]
 
         Attributes:
             - name          = (str) The name of the attack
@@ -441,6 +468,10 @@ class attack(object):
         }
     # End _comprehend_damage_str method
 
+    ################################
+    #========= ATTACK HIT =========
+    ################################
+
     def _hit_conditions(self, source, target, pass_arg={}):
         """Will look at the current conditions of the attacking character, and see if the hit should be modified in any way. Will also check the conditions of the target as well as any
         environmental conditions.
@@ -477,37 +508,37 @@ class attack(object):
             return_val = custom_hit_conditons(attack=self.name, source=source, target=target, pass_arg=pass_arg)
 
         # Check attacker conditions
-        if _overlap(set(source.char_resources.cond), {'blinded', 'frightened', 'prone', 'restrained'}):
+        if _overlap(set(source.char_conditions), {'blinded', 'frightened', 'prone', 'restrained'}):
             log.hit(f'{source._name} has disadvantage because of a condition')
             return_val['adv'] += -1
-        if _overlap(set(source.char_resources.cond), {'invisible'}):
+        if _overlap(set(source.char_conditions), {'invisible'}):
             log.hit(f'{source._name} has advantage because of a condition')
             return_val['adv'] += 1
 
         # Check target conditions
-        if _overlap(set(target.char_resources.cond), {'invisible'}):
+        if _overlap(set(target.char_conditions), {'invisible'}):
             log.hit(f'{target._name} grants disadvantage because of a condition')
             return_val['adv'] -= 1
-        if _overlap(set(target.char_resources.cond), {'prone'}):
+        if _overlap(set(target.char_conditions), {'prone'}):
             if ('in5ft' in pass_arg):
                 log.hit(f'{target._name} grants advantage because they are prone and was hit within 5 ft')
                 return_val['adv'] += 1
             else:
                 log.hit(f'{target._name} grants disadvantage because they are prone and was not hit within 5 ft')
                 return_val['adv'] -= 1
-        if ('dodge' in target.char_resources.cond):
+        if ('dodge' in target.char_conditions):
             log.hit(f'{target._name} grants disadvantage because they are dodging')
             return_val['adv'] -= 1
-        if _overlap(set(target.char_resources.cond), {'blinded', 'paralyzed', 'petrified', 'restrained', 'stunned', 'unconscious'}):
+        if _overlap(set(target.char_conditions), {'blinded', 'paralyzed', 'petrified', 'restrained', 'stunned', 'unconscious'}):
             log.hit(f'{target._name} grants advantage because of a condition')
             return_val['adv'] += 1
 
         # Check for bardic inspiration
-        if ('bardic_inspiration' in source.char_resources.cond):
-            bi_roll = roll_d_str(source.char_resources.cond['bardic_inspiration']._properties)
+        if ('bardic_inspiration' in source.char_conditions):
+            bi_roll = roll_d_str(source.char_conditions['bardic_inspiration']._properties)
             log.action(f'{source._name} is using their bardic inspiration and rolled a {bi_roll}')
             return_val['mod'] += bi_roll
-            source.char_resources.remove_condition('bardic_inspiration')
+            source.remove_condition('bardic_inspiration')
         
         # Handle ability modifier
         if (
@@ -602,6 +633,10 @@ class attack(object):
         log.hit(f'{source._name} using {self.name} rolled a {roll}+{total_mod} to hit')
         return ('norm', roll + total_mod)
     # End roll_hit method
+
+    ################################
+    #======== ATTACK DAMAGE ========
+    ################################
 
     def _conditional_damage(self, source, target, crit=False, pass_arg={}):
         """Will look at the current conditions of the attacker, and add any other sources of damage. Will also check the conditions of the target as well as any environmental conditions.
@@ -715,6 +750,10 @@ class attack(object):
     # End roll_damage method
 # End attack class
 
+################################################################
+#============================ SPELL ============================
+################################################################
+
 class spell(object):
     """Handler for a spell that a character casts.
     Spell handling is grouped by level and stored in their respecitve methods.
@@ -739,8 +778,13 @@ class spell(object):
     def __init__(self, name, in_json='spells.json'):
         """Init for spell
 
+        Args:
+            - name      = (str) The name of the spell
+            - in_json   = (str, optional) The name of the json to get this spell from. Default=spells.json.
+
         Attributes:
             - _name     = (str) The name of this spell
+            - _custom   = (bool) If the spell is custom
             - level     = (int) The level of this spell. In range(0,10)
             - school    = (str) The school of this spell
             - cost      = (str) The cost of this spell. One of [regular, bonus, reaction]
@@ -751,6 +795,11 @@ class spell(object):
         if not isinstance(name, str):
             raise TypeError('arg name must be a str')
         self._name = name
+
+        if (in_json!='spells.json'):
+            self._custom = True
+        else:
+            self._custom = False
 
         with open(in_json, 'r') as read_file:
             data = json.load(read_file)
@@ -785,6 +834,8 @@ class spell(object):
         Returns:
             (dict) The results of the spell
         """
+        if self._custom:
+            return custom_spell(name=self._name, source=source, target=target, pass_arg=pass_arg)
         if (self.level == 0):
             return self._cantrip(source=source, target=target, pass_arg=pass_arg)
         if (self.level == 1):
@@ -808,6 +859,10 @@ class spell(object):
         raise Exception('attribute level was set to something other than 0 to 9 inclusive')
     # End do_spell method
 
+    ################################
+    #=========== CANTRIP ===========
+    ################################
+
     def _cantrip(self, source, target=[], pass_arg=None):
         """Where all cantrips (0 level) are"""
         if not isinstance(source, combatCharacter):
@@ -816,11 +871,15 @@ class spell(object):
             raise TypeError('arg target must be a list')
         
         if self._name=='shillelagh':
-            source.char_resources.add_condition('shillelagh', '1 minute')
+            source.add_condition('shillelagh', '1 minute')
             return {source._name: 'shillelagh'}
 
         raise Exception(f'logic for cantrip spell {self._name} has not been coded')
     # End _cantrip method
+
+    ################################
+    #========= FIRST LEVEL =========
+    ################################
 
     def _first(self, source, target=[], pass_arg=None):
         """Where all first level spells are"""
@@ -832,6 +891,10 @@ class spell(object):
         raise Exception(f'logic for first level spell {self._name} has not been coded')
     # End _first method
 
+    ################################
+    #======== SECOND LEVEL ========
+    ################################
+
     def _second(self, source, target=[], pass_arg=None):
         """Where all second level spells are"""
         if not isinstance(source, combatCharacter):
@@ -841,6 +904,10 @@ class spell(object):
         
         raise Exception(f'logic for second level spell {self._name} has not been coded')
     # End _second method
+
+    ################################
+    #========= THIRD LEVEL =========
+    ################################
 
     def _third(self, source, target=[], pass_arg=None):
         """Where all third level spells are"""
@@ -852,6 +919,10 @@ class spell(object):
         raise Exception(f'logic for third level spell {self._name} has not been coded')
     # End _third method
 
+    ################################
+    #======== FOURTH LEVEL ========
+    ################################
+
     def _fourth(self, source, target=[], pass_arg=None):
         """Where all fourth level spells are"""
         if not isinstance(source, combatCharacter):
@@ -861,6 +932,10 @@ class spell(object):
         
         raise Exception(f'logic for fourth level spell {self._name} has not been coded')
     # End _fourth method
+
+    ################################
+    #========= FIFTH LEVEL =========
+    ################################
 
     def _fifth(self, source, target=[], pass_arg=None):
         """Where all fifth level spells are"""
@@ -872,6 +947,10 @@ class spell(object):
         raise Exception(f'logic for fifth level spell {self._name} has not been coded')
     # End _fifth method
 
+    ################################
+    #========= SIXTH LEVEL =========
+    ################################
+
     def _sixth(self, source, target=[], pass_arg=None):
         """Where all sixth level spells are"""
         if not isinstance(source, combatCharacter):
@@ -881,6 +960,10 @@ class spell(object):
         
         raise Exception(f'logic for sixth level spell {self._name} has not been coded')
     # End _sixth method
+
+    ################################
+    #======== SEVENTH LEVEL ========
+    ################################
 
     def _seventh(self, source, target=[], pass_arg=None):
         """Where all seventh level spells are"""
@@ -892,6 +975,10 @@ class spell(object):
         raise Exception(f'logic for seventh level spell {self._name} has not been coded')
     # End _seventh method
 
+    ################################
+    #======== EIGHTH LEVEL ========
+    ################################
+
     def _eighth(self, source, target=[], pass_arg=None):
         """Where all eighth level spells are"""
         if not isinstance(source, combatCharacter):
@@ -901,6 +988,10 @@ class spell(object):
         
         raise Exception(f'logic for eigth level spell {self._name} has not been coded')
     # End _eighth method
+
+    ################################
+    #========= NINTH LEVEL =========
+    ################################
 
     def _ninth(self, source, target=[], pass_arg=None):
         """Where all ninth level spells are"""
@@ -913,6 +1004,245 @@ class spell(object):
     # End _ninth method
 # End spell class
 
+################################################################
+#========================== CONDITION ==========================
+################################################################
+
+class condition(object):
+    """A condition that afflicts a character.
+
+    Args:
+        - name      = (str) Name of this condtion
+        - duration  = (str) Duration of this condition in # {unit} format. Possible units are [round, second, minute, hour, day, sont (start of next turn),
+            eont (end of next turn)]. Example: 2 round or 3 minute. If is the str 'indefinite', will create it as one that will not remove after a set time.
+        - prop      = (any, optional) Any additional information that is needed for this condition
+
+    Methods:
+        - check_condition   :after a certain amount of time has passed, check to see if the condition is done or not
+        - add_time          :add more time to the condtion
+
+        - _effect_on_gain   :effects when gaining a condition
+        - _effect_on_sot    :effects when the character is at the start of their turn
+        - _effect_on_eot    :effects when the character is at the end of their turn
+        - _effect_on_loss   :effects when losing a condition
+        - _effect_on_oct    :effects that trigger when checked on Other Character's Turn
+    """
+    def __init__(self, name, duration, prop=None):
+        """Init for condition
+
+        Args:
+            - name      = (str) Name of this condtion
+            - duration  = (str) Duration of this condition in # {unit} format. Possible units are [round, second, minute, hour, day, sont (start of next turn),
+                eont (end of next turn)]. Example: 2 round or 3 minute. If is the str 'indefinite', will create it as one that will not remove after a set time.
+            - prop      = (any, optional) Any additional information that is needed for this condition
+
+        Attributes:
+            - name          = (str) Name of this condition
+            - indefinite    = (bool) If this condition is indefinite, i.e. has no end
+            - unit          = (str) Time unit used for condition duration
+            - remaining     = (float) Time remaining for condition, in unit above
+            - valid         = (bool) If the condition is valid because there is still time remaining on its duration
+            - _properties   = (any) Any properties that should go with this condtion
+        """
+        if not isinstance(name, str):
+            raise TypeError('arg name must be a str')
+        self.name = name
+        if not isinstance(duration, str):
+            raise TypeError('arg duration must be a str')
+        self._properties = prop
+        self.valid = True
+
+        if (duration=='indefinite'):
+            self.indefinite = True
+            self.unit = ''
+            self.remaining = 0
+            return
+        self.indefinite = False
+
+        split_list = duration.split(' ')
+        if (len(split_list)!=2):
+            raise ValueError('arg duration is not in the right format: # unit')
+        if (split_list[1] not in ['round', 'second', 'minute', 'hour', 'day', 'sont', 'eont']):
+            raise ValueError('arg duration had an invalid unit')
+        self.unit = split_list[1]
+        if (not split_list[0].isnumeric()):
+            raise ValueError('arg duration did not have a number for time')
+        self.remaining = float(split_list[0])
+    # End __init__
+
+    def check_condition(self, time_passed):
+        """To check if condition has ended cause sufficient time has passed. Will subtract time passing from attribute remaining
+
+        Args:
+            - time_passed = (str) Amount of time that has passed in # {unit} format. Possible units are [round, second, minute, hour, day, sont (start of next turn),
+                eont (end of next turn)]. Example: 2 round or 3 minute.
+
+        Returns:
+            (bool) True if the condition has ended
+        """
+        if self.indefinite:
+            log.conditn(f'{self.name} continues as an indefinite condition')
+            return False
+
+        if not isinstance(time_passed, str):
+            raise TypeError('arg time_passed must be a str')
+        split_list = time_passed.split(' ')
+        if (len(split_list)!=2):
+            raise ValueError('arg time_passed is not in the right format: # unit')
+        if (split_list[1] not in ['round', 'second', 'minute', 'hour', 'day', 'sont', 'eont']):
+            raise ValueError('arg time_passed had an invalid unit')
+        unit = split_list[1]
+        if (not split_list[0].isnumeric()):
+            raise ValueError('arg time_passed did not have a number for time')
+        amount = float(split_list[0])
+
+        if (self.unit==unit):
+            self.remaining -= amount
+        # sont and eont will not lose time with round and second
+        elif (self.unit=='sont'):
+            if (unit in ['minute', 'hour', 'day']):
+                self.remaining -= (TIME_UNITS[unit]/TIME_UNITS['sont'])*amount
+        elif (self.unit=='eont'):
+            if (unit in ['minute', 'hour', 'day']):
+                self.remaining -= (TIME_UNITS[unit]/TIME_UNITS['eont'])*amount
+        else:
+            self.remaining -= (TIME_UNITS[unit]/TIME_UNITS[self.unit])*amount
+
+        if self.remaining <= 0:
+            log.conditn(f'{self.name} has ended')
+            self.valid = False
+            return True
+        log.conditn(f'{self.name} has {round(self.remaining, 2)} {self.unit}(s) remaining')
+        return False
+    # End check_condition method
+
+    def add_time(self, duration):
+        """Adds more time to the condition. You cannot subtract time with this method; use check_condition method for such a thing.
+
+        Args:
+            - duration  = (str) Duration of this condition in # {unit} format. Possible units are [round, second, minute, hour, day, sont (start of next turn),
+                eont (end of next turn)]. Example: 2 round or 3 minute.
+
+        Returns:
+            No return value
+        """
+        if self.indefinite:
+            log.debug(f'cannot add time to an indefinite condition {self.name}')
+            return
+        if not isinstance(duration, str):
+            raise TypeError('arg duration must be a str')
+
+        split_list = duration.split(' ')
+        if (len(split_list)!=2):
+            raise ValueError('arg time_passed is not in the right format: # unit')
+        if (split_list[1] not in ['round', 'second', 'minute', 'hour', 'day', 'sont', 'eont']):
+            raise ValueError('arg duration had an invalid unit')
+        unit = split_list[1]
+        if (not split_list[0].isnumeric()): # This will automatically check for positive only time
+            raise ValueError('arg duration did not have a number for time')
+        amount = float(split_list[0])
+
+        if (self.unit==unit):
+            self.remaining += amount
+        else:
+            self.remaining += (TIME_UNITS[unit]/TIME_UNITS[self.unit])*amount
+        log.conditn(f'{self.name} now lasts for {self.remaining} {self.unit}(s)')
+    # End add_time method
+
+    def _effect_on_gain(self, character):
+        """Condition effects that trigger when a character gains the specified condition. There should be a correspondence between this method and _effect_on_loss.
+
+        Args:
+            - character = (combatCharacter obj) The character that this condition is afflicting
+
+        Returns:
+            No return value
+        """
+        if not isinstance(character, combatCharacter):
+            raise TypeError('arg character must be a combatCharacter obj')
+
+        if (self.name in ['grappled', 'restrained']):
+            character.char_resources._cached_stats['_speed'] = 1*character.char_resources._speed
+            character.char_resources._speed = 0
+            log.conditn(f'{character._name} had their speed set to 0 because of {self.name}')
+            return
+        if (self.name == 'stabilized'):
+            character.char_resources.death_saves = {'success':0, 'fail':0}
+            log.conditn(f'{character._name} resets their death save count')
+            return
+    # End _effect_on_gain method
+
+    def _effect_on_sot(self, character):
+        """Condition effects that trigger when at the start of the character's turn.
+
+        Args:
+            - character = (combatCharacter obj) The character that this condition is afflicting
+
+        Returns:
+            No return value
+        """
+        if not isinstance(character, combatCharacter):
+            raise TypeError('arg character must be a combatCharacter obj')
+
+        if (self.name in ['grappled', 'restrained']):
+            character.char_resources.movement = 0.0
+            log.conditn(f'{character._name} has 0 feet of movement because they have {self.name}')
+            return
+    # End _effect_on_sot method
+
+    def _effect_on_eot(self, character):
+        """Condition effects that trigger when at the end of the character's turn.
+
+        Args:
+            - character = (combatCharacter obj) The character that this condition is afflicting
+
+        Returns:
+            No return value
+        """
+        if not isinstance(character, combatCharacter):
+            raise TypeError('arg character must be a combatCharacter obj')
+    # End _effect_on_eot method
+
+    def _effect_on_loss(self, character):
+        """Condition effects that trigger when a character loses the specified condition. There should be a correspondence between this method and _effect_on_gain.
+
+        Args:
+            - character = (combatCharacter obj) The character that this condition is afflicting
+
+        Returns:
+            No return value
+        """
+        if not isinstance(character, combatCharacter):
+            raise TypeError('arg character must be a combatCharacter obj')
+
+        if (self.name in ['grappled', 'restrained']):
+            character.char_resources._speed = 1*character.char_resources._cached_stats['_speed']
+            log.conditn(f'{character._name} regains their normal speed after losing {self.name}')
+            return
+        if (self.name == 'dying'):
+            character.char_resources.death_saves = {'success':0, 'fail':0}
+            log.conditn(f'{character._name} resets their death save count')
+            return
+    # End _effect_on_loss method
+
+    def _effect_on_oct(self, character):
+        """Conditions effects that will happen on an other character's turn i.e. an effect on a target that happens on the source's turn.
+
+        Args:
+            - character = (combatCharacter obj) The target who has this condition
+
+        Returns:
+            No return value
+        """
+        if not isinstance(character, combatCharacter):
+            raise TypeError('arg character must be a combatCharacter obj')
+    # End _effect_on_oct method
+# End condition class
+
+################################################################
+#======================= COMBATCHARACTER =======================
+################################################################
+
 class combatCharacter(object):
     """Character that is within the battle. Anything that would take or deal damage in the battle.
 
@@ -924,31 +1254,49 @@ class combatCharacter(object):
         - act_inc   = (list of str, optional) Which individual actions to automatically include. Default=[].
 
     Classes:
-        - stats:            object to hold the stats for this character
-        - resources:        object to hold the resources for this character
-            - condition:    object to hold a condition for this character
-        - actionChooser:    object that gives a character's available actions and the bias they will choose that aciton
+        - stats             :object to hold the stats for this character
+        - resources         :object to hold the resources for this character
+            - condition     :object to hold a condition for this character
+        - actionChooser     :object that gives a character's available actions and the bias they will choose that aciton
 
     Methods:
-        - take_damage:          have character take damage
-        - add_attack:           add an attack to the character
-        - set_stats:            sets the stats of the character
-        - roll_stat:            have a character do a roll for a stat
-        - get_random_attack:    gets a random attack this character can do
-        - get_random_action:    gets a random action dependent on characters conditions
+        - add_attack            :add an attack to the character
+        - set_stats             :sets the stats of the character
+        - take_damage           :have character take damage
+
+        - char_roll_stat        :have a character do a roll for a stat
+        - add_condition         :adds condition to character
+        - remove_condition      :removes condition of character
+        - check_all_conditions  :do check_condtion method on all conditions
+
+        - start_turn            :refill all resources that replenish on their turn, and trigger certain start of turn effects
+        - end_turn              :end the turn of the character, which will end certain effects
+
+        - get_random_attack     :gets a random attack this character can do
+        - get_random_action     :gets a random action dependent on characters conditions
     """
     def __init__(self, name, team, stat_dict={}, act_cat=[], act_inc=[]):
         """Init for combatCharacter
 
+        Args:
+            - name      = (str) The name of this character
+            - team      = (str) The team the character is on. One of [pc, ally, enemy]
+            - stat_dict = (dict, optional) The stats to automatically add. See stats.set_stats method. Default={}.
+            - act_cat   = (list of str, optional) Which category of actions to automatically include. Default=[].
+            - act_inc   = (list of str, optional) Which individual actions to automatically include. Default=[].
+        
         Attributes:
             - _name             = (str) The character's name
             - team              = (str) The character's team. One of [pc, ally, enemy]
             - char_stats        = (stats obj) The stats of this character
             - char_resources    = (resources obj) The resources of this character
             - char_actions      = (actionChooser obj) The actions available to this character
-            - char_attacks      = (dict of int) The attacks of the character
+            - char_attacks      = (dict) The attacks of the character
                 - Key               | Value
                 - {name of attack}  | (int) Bias of this attack
+            - char_conditions   = (dict) The current conditions of the character
+                - Key                   | Value
+                - {name of condition}   | (condition obj) The handling of this condition
         """
         if not isinstance(name, str):
             raise TypeError("name must be a string")
@@ -986,7 +1334,14 @@ class combatCharacter(object):
             self.add_attack({'unarmed':0})
 
         log.debug(f'Created character {name} on team {team}')
+
+        # Create condition dict
+        self.char_conditions = {}
     # End __init__
+
+    ################################
+    #============ STATS ============
+    ################################
 
     class stats(object):
         """The stats of this character. In general, values that remain fairly static are stored here.
@@ -998,6 +1353,7 @@ class combatCharacter(object):
         Methods:
             - add_property: add properties to attribute property
             - set_stats:    set the stats of the character
+
             - get_mod:      get the modifier of an ability of the character
             - roll_ability: have the character roll for an ability check
             - roll_skill:   have the character roll for a skill check
@@ -1005,6 +1361,9 @@ class combatCharacter(object):
         """
         def __init__(self, name):
             """Init of stats
+
+            Args:
+                - name = (str) The character's name
 
             Attributes:
                 - _name         = (str) The character's name
@@ -1065,7 +1424,7 @@ class combatCharacter(object):
         # End __init__
 
         def add_property(self, in_dict):
-            """Adding additional property to stats, in attribute property
+            """Adding additional property to stats, in attribute property. Also used to update the properties.
 
             Args:
                 - in_dict = (dict) The property to add. Key should be a string, but value can be any type
@@ -1249,40 +1608,44 @@ class combatCharacter(object):
         # End roll_save method
     # End stats class
 
+    ################################
+    #========== RESOURCES ==========
+    ################################
+
     class resources(object):
         """The resources of this character. These are values that will constantly change during battle. Anything that has
         a duration should also be stored here.
         There should only be one instance of this in a character.
 
         Args:
-            - name = (str) The character's name
-            - in_stats = (stats obj) The stats of the character
+            - name      = (str) The character's name
+            - in_stats  = (stats obj) The stats of the character
 
         Classes:
             condition: object to hold a condition on a character
 
         Methods:
-            - add_miscellaneous:        add new key to attribute miscellaneous
-            - add_resource:             update attributes
-            - restore_all_slots:        restore all spell slots
-            - effect_on_gain:           effects when gaining a condtion
-            - effect_on_check:          effects when checking a condtion
-            - effect_on_loss:           effects when losing a condition
-            - add_condition:            adds condition to character
-            - del_condition:            removes condition of character
-            - heal_hp:                  restore HP to the character
-            - remove_hp:                remove HP from the character
-            - check_all_conditions:     do check_condtion method on all condtions
-            - long_rest:                refill all resources that replenish on a long rest
-            - short_rest:               refill all resources that replenish on a short rest
-            - get_resources_for_round:  get all the resources the character has for the round
-            - start_turn:               refill all resources that replenish on their turn, and trigger certain start of turn effects
-            - end_turn:                 end the turn of the character, which will end certain effects
-            - _gain_death_save:         have the character gain a death save roll
-            - do_death_save:            have character do a death save
+            - add_miscellaneous         :add new key to attribute miscellaneous
+
+            - add_resource              :update attributes
+            - restore_all_slots         :restore all spell slots
+            - heal_hp                   :restore HP to the character
+            - remove_hp                 :remove HP from the character
+
+            - long_rest                 :refill all resources that replenish on a long rest
+            - short_rest                :refill all resources that replenish on a short rest
+
+            - _gain_death_save          :have the character gain a death save roll
+            - do_death_save             :have character do a death save
+
+            - get_resources_for_round   :get all the resources the character has for the round
         """
         def __init__(self, name, in_stats):
             """Init of resources
+
+            Args:
+                - name      = (str) The character's name
+                - in_stats  = (stats obj) The stats of the character
 
             Attributes:
                 - _name             = (str) The character's name
@@ -1299,7 +1662,6 @@ class combatCharacter(object):
                 - hit_dice          = (dict of int) The number of dice in the Hit Dice pool for the character
                 - _max_slots        = (dict of int) The max slots for each spell level
                 - spell_slots       = (dict of int) The number of Spell Slots of each spell level for the character
-                - cond              = (dict of condition obj) All conditions on the character
                 - death_saves       = (dict of int) The number of death save successes and failures
                     - Key       | Value
                     - success   | (int) The number of successful death saves
@@ -1329,7 +1691,6 @@ class combatCharacter(object):
             self.hit_dice = self._max_hit_dice.copy()
             self._max_slots = in_stats.slots.copy()
             self.spell_slots = in_stats.slots.copy()
-            self.cond = {}
             self.death_saves = {'success':0, 'fail':0}
 
             # Class resources
@@ -1341,140 +1702,12 @@ class combatCharacter(object):
             self.miscellaneous = {}
         # End __init__
 
-        class condition(object):
-            """Object that is a condtion on the character.
-
-            Args:
-                - name          = (str) Name of this condtion
-                - duration      = (str) Duration of this condition in # {unit} format. Possible units are [round, second, minute, hour, day, sont (start of next turn),
-                    eont (end of next turn)]. Example: 2 round or 3 minute.
-                - indefinite    = (bool, optional) If this condition is an indefinite one. If not Default=False, will ignore arg duration.
-
-            Methods:
-                - check_condition   : after a certain amount of time has passed, check to see if the condition is done or not
-                - add_time          : add more time to the condtion
-            """
-            def __init__(self, name, duration, indefinite=False, prop=''):
-                """Init for condition
-
-                Attributes:
-                    - name          = (str) Name of this condition
-                    - indefinite    = (bool) If this condition is indefinite, i.e. has no end
-                    - unit          = (str) Time unit used for condition duration
-                    - remaining     = (float) Time remaining for condition, in unit above
-                    - valid         = (bool) If the condition is valid because there is still time remaining on its duration
-                    - _properties   = (str) Any properties that should go with this condtion
-                """
-                if not isinstance(name, str):
-                    raise TypeError('arg name must be a str')
-                self.name = name
-                if not isinstance(prop, str):
-                    raise TypeError('arg prop must be a str')
-                self._properties = prop
-
-                if indefinite:
-                    self.indefinite = True
-                    self.unit = ''
-                    self.remaining = 0
-                    self.valid = True
-                    return
-                self.indefinite = False
-
-                if not isinstance(duration, str):
-                    raise TypeError('arg duration must be a str')
-                split_list = duration.split(' ')
-                if (len(split_list)!=2):
-                    raise ValueError('arg duration is not in the right format: # unit')
-                if (split_list[1] not in ['round', 'second', 'minute', 'hour', 'day', 'sont', 'eont']):
-                    raise ValueError('arg duration had an invalid unit')
-                self.unit = split_list[1]
-                if (not split_list[0].isnumeric()):
-                    raise ValueError('arg duration did not have a number for time')
-                self.remaining = float(split_list[0])
-
-                self.valid = True
-            # End __init__
-
-            def check_condition(self, time_passed):
-                """To check if condition has ended cause sufficient time has passed. Will subtract time passing from attribute remaining
-
-                Args:
-                    - time_passed = (str) Amount of time that has passed in # {unit} format. Possible units are [round, second, minute, hour, day, sont (start of next turn),
-                        eont (end of next turn)]. Example: 2 round or 3 minute.
-
-                Returns:
-                    (bool) True if the condition has ended
-                """
-                if self.indefinite:
-                    log.conditn(f'{self.name} continues as an indefinite condition')
-                    return False
-
-                if not isinstance(time_passed, str):
-                    raise TypeError('arg time_passed must be a str')
-                split_list = time_passed.split(' ')
-                if (len(split_list)!=2):
-                    raise ValueError('arg time_passed is not in the right format: # unit')
-                if (split_list[1] not in ['round', 'second', 'minute', 'hour', 'day', 'sont', 'eont']):
-                    raise ValueError('arg time_passed had an invalid unit')
-                unit = split_list[1]
-                if (not split_list[0].isnumeric()):
-                    raise ValueError('arg time_passed did not have a number for time')
-                amount = float(split_list[0])
-
-                if (self.unit==unit):
-                    self.remaining -= amount
-                elif (self.unit=='sont'):
-                    if (unit in ['minute', 'hour', 'day']):
-                        self.remaining -= (TIME_UNITS[unit]/TIME_UNITS['sont'])*amount
-                elif (self.unit=='eont'):
-                    if (unit in ['minute', 'hour', 'day']):
-                        self.remaining -= (TIME_UNITS[unit]/TIME_UNITS['eont'])*amount
-                else:
-                    self.remaining -= (TIME_UNITS[unit]/TIME_UNITS[self.unit])*amount
-
-                if self.remaining <= 0:
-                    log.conditn(f'{self.name} has ended')
-                    self.valid = False
-                    return True
-                log.conditn(f'{self.name} has {round(self.remaining, 2)} {self.unit}(s) remaining')
-                return False
-            # End check_condition method
-
-            def add_time(self, duration):
-                """Adds more time to the condition. You cannot subtract time with this method; use check_condition method for such a thing.
-
-                Args:
-                    - duration  = (str) Duration of this condition in # {unit} format. Possible units are [round, second, minute, hour, day, sont (start of next turn),
-                        eont (end of next turn)]. Example: 2 round or 3 minute.
-
-                Returns:
-                    No return value
-                """
-                if self.indefinite:
-                    log.debug(f'cannot add time to an indefinite condition {self.name}')
-                    return
-                if not isinstance(duration, str):
-                    raise TypeError('arg duration must be a str')
-                split_list = duration.split(' ')
-                if (len(split_list)!=2):
-                    raise ValueError('arg time_passed is not in the right format: # unit')
-                if (split_list[1] not in ['round', 'second', 'minute', 'hour', 'day', 'sont', 'eont']):
-                    raise ValueError('arg duration had an invalid unit')
-                unit = split_list[1]
-                if (not split_list[0].isnumeric()): # This will automatically check for positive only time
-                    raise ValueError('arg duration did not have a number for time')
-                amount = float(split_list[0])
-
-                if (self.unit==unit):
-                    self.remaining += amount
-                else:
-                    self.remaining += (TIME_UNITS[unit]/TIME_UNITS[self.unit])*amount
-                log.conditn(f'{self.name} now lasts for {self.remaining} {self.unit}(s)')
-            # End add_time method
-        # End condition class
+        ################################
+        #======== NEW RESOURCE ========
+        ################################
 
         def add_miscellaneous(self, in_list):
-            """Adds new keys to attribute miscellaneous
+            """Adds new keys to attribute miscellaneous. This key will be initialized to 1.
 
             Args:
                 - in_list = (list) List of keys to add
@@ -1490,63 +1723,94 @@ class combatCharacter(object):
                 self.miscellaneous[i] = 1
         # End add_miscellaneous method
 
-        def add_resource(self, in_dict):
+        ################################
+        #======= CHANGE RESOURCE =======
+        ################################
+
+        def add_resource(self, in_dict, character):
             """Add resources to the character, updating the attributes. Also used to remove resources.
             HP handling is done by heal_hp and remove_hp methods, not this one.
 
             Args:
-                - in_dict = (dict) Resources to change. If negative, will remove resources instead.
+                - in_dict   = (dict) Resources to change. If negative, will remove resources instead.
                     - Key       | Value
                     - temp_hp   | (int) Increase temp HP
                     - regular   | (int) Increase regular actions
                     - bonus     | (int) Increase bonus actions
                     - reaction  | (int) Increase reaction
-                    - movement  | (int) Increase movement
+                    - movement  | (int or float) Increase movement
                     - hit_dice  | (dict) Increase hit dice
                         - Key               | Value
                         - {int of faces}    | (int) Increase hit dice of this number of faces
                     - slots     | (dict) Increase spell slots
                         - Key                   | Value
                         - {spell slot level}    | (int) Increase slots of this level
+                - character = (combatCharacter obj) The character that this resource obj is an attribute of
 
             Returns:
                 No return value
             """
             if not isinstance(in_dict, dict):
                 raise TypeError('arg in_dict must be a dict')
+            if not isinstance(character, combatCharacter):
+                raise TypeError('arg character must be a combatCharact obj')
+            if (self._name != character._name):
+                raise ValueError('arg character must be the obj of this resource obj')
 
             if ('temp_hp' in in_dict):
+                if not isinstance(in_dict['temp_hp'], int):
+                    raise TypeError('arg in_dict["temp_hp"] must be an int')
                 self.temp_hp += in_dict['temp_hp']
                 log.resource(f'{self._name} now has {self.temp_hp} temporary HP')
+
             if ('regular' in in_dict):
+                if not isinstance(in_dict['regular'], int):
+                    raise TypeError('arg in_dict["regular"] must be an int')
                 self.regular_action = max(0, self.regular_action + in_dict['regular'])
                 log.resource(f'{self._name} now has {self.regular_action} regular actions')
+
             if ('bonus' in in_dict):
+                if not isinstance(in_dict['bonus'], int):
+                    raise TypeError('arg in_dict["bonus"] must be an int')
                 self.bonus_action = max(0, self.bonus_action + in_dict['bonus'])
                 log.resource(f'{self._name} now has {self.bonus_action} bonus actions')
+
             if ('reaction' in in_dict):
+                if not isinstance(in_dict['reaction'], int):
+                    raise TypeError('arg in_dict["reaction"] must be an int')
                 self.reaction = max(0, self.reaction + in_dict['reaction'])
                 log.resource(f'{self._name} now has {self.reaction} reactions')
+
             if ('movement' in in_dict):
-                if ('grappled' not in self.cond):
+                if not isinstance(in_dict['movement'], (int, float)):
+                    raise TypeError('arg in_dict["movement"] must be an int or float')
+                if ('grappled' in character.char_conditions):
+                    log.resource(f'{self._name} cannot gain any speed because they are grappled')
+                else:
                     self.movement = max(0.0, self.movement + float(in_dict['movement']))
                     log.resource(f'{self._name} now has {self.movement} feet of movement')
-                else:
-                    log.resource(f'{self._name} cannot gain movement because they are grappled')
 
             if ('hit_dice' in in_dict):
+                if not isinstance(in_dict['hit_dice'], dict):
+                    raise TypeError('arg in_dict["hit_dice"] must be an dict')
                 valid_faces = range(2, 14, 2)
                 for i_faces, i_count in in_dict['hit_dice'].items():
                     if (i_faces not in valid_faces):
                         continue
+                    if not isinstance(i_count, int):
+                        raise TypeError('arg in_dict["hit_dice"][{faces}] must be an int')
                     self.hit_dice[i_faces] = max(0, min(self._max_hit_dice[i_faces], self.hit_dice[i_faces] + i_count))
                 log.resource(f'{self._name} now has {self.hit_dice} hit dice')
 
             if ('slots' in in_dict):
+                if not isinstance(in_dict['slots'], dict):
+                    raise TypeError('arg in_dict["slots"] must be an dict')
                 valid_levels = range(1,10)
                 for i_level, i_count in in_dict['slots'].items():
                     if (i_level not in valid_levels):
                         continue
+                    if not isinstance(i_count, int):
+                        raise TypeError('arg in_dict["slots"][{level}] must be an int')
                     self.spell_slots[i_level] = max(0, min(self._max_slots[i_level], self.spell_slots[i_level] + i_count))
                 log.resource(f'{self._name} now has {self.spell_slots} spell slots')
         # End add_resource method
@@ -1564,128 +1828,26 @@ class combatCharacter(object):
                 self.spell_slots[i_slot] = 1*i_count
         # End restore_all_slots method
 
-        def effect_on_gain(self, name):
-            """Do all effects that trigger when gaining the specified condtion.
-
-            Args:
-                - name = (str) The name of the condition
-
-            Returns:
-                No return value
-            """
-            if not isinstance(name, str):
-                raise TypeError('arg name must be a str')
-            if (name in ['grappled', 'restrained']):
-                self._cached_stats['_speed'] = 1*self._speed
-                self._speed = 0
-                log.conditn(f'{self._name} had their speed set to 0 because of {name}')
-        # End effect_on_gain method
-
-        def effect_on_check(self, name):
-            """Do all effects that trigger when checking for that condition. In general, this should only happen in check_all_conditions method
-
-            Args:
-                - name = (str) The name of the condition
-
-            Returns:
-                No return value
-            """
-            if not isinstance(name, str):
-                raise TypeError('arg name must be a str')
-            if (name in ['grappled', 'restrained']):
-                self.movement = 0.0
-                log.conditn(f'{self._name} has 0 feet of movement because they have {name}')
-        # End effect_on_check method
-
-        def effect_on_loss(self, name):
-            """Lose all effects that trigger when losing the specified condition.
-
-            Args:
-                - name = (str) The name of the condition
-
-            Returns:
-                No return value
-            """
-            if not isinstance(name, str):
-                raise TypeError('arg name must be a str')
-            if (name in ['grappled', 'restrained']):
-                self._speed = 1*self._cached_stats['_speed']
-                log.conditn(f'{self._name} regains their normal speed after losing {name}')
-        # End effect_on_loss method
-
-        def add_condition(self, name, duration, prop=''):
-            """Adds the condition to the character. If character already has the condition, will add more time to its remaining time.
-
-            Args:
-                - name      = (str) Name of this condtion
-                - duration  = (str) Duration of this condition in # {unit} format. Possible units are [round, second, minute, hour, day, sont (start of next turn),
-                    eont (end of next turn)]. Example: 2 round or 3 minute. Can be 'indefinite' if there is no duration
-                - prop      = (str, optional) Any properties that should go with the condition. Default=''
-
-            Returns:
-                (int) How many conditions the character now has
-            """
-            if (name in self.cond):
-                log.conditn(f'Adding {duration} for {name} on {self._name}')
-                self.cond[name].add_time(duration=duration)
-            elif (duration=='indefinite'):
-                self.cond[name] = self.condition(name=name, duration='', indefinite=True, prop=prop)
-                log.conditn(f'{self._name} now has condition {name} indefinitely')
-            else:
-                self.cond[name] = self.condition(name=name, duration=duration, prop=prop)
-                log.conditn(f'{self._name} now has condition {name} for {duration}')
-
-            if (name=='dying'):
-                self.add_condition('unconscious', 'indefinite')
-            if (name in ['paralyzed', 'petrified', 'stunned', 'unconscious']):
-                self.add_condition('incapacitated', 'indefinite')
-            if (name=='incapacitated'):
-                self.remove_condition('dodge')
-            if (name=='unconscious'):
-                self.add_condition('prone', 'indefinite')
-            if (name=='stabilized'):
-                self.death_saves = {'success':0, 'fail':0}
-            self.effect_on_gain(name)
-            return len(self.cond)
-        # End add_condition method
-
-        def remove_condition(self, name):
-            """Remove the specified condtion from the character
-
-            Args:
-                - name = (str) Name of the condition to remove
-
-            Returns:
-                No return value
-            """
-            if (name in self.cond):
-                del self.cond[name]
-                self.effect_on_loss(name)
-
-                if (name=='dying'):
-                    self.death_saves = {'success':0, 'fail':0}
-                    self.remove_condition('unconscious')
-                if (name in ['paralyzed', 'petrified', 'stunned', 'unconscious']):
-                    self.remove_condition('incapacitated')
-
-                log.conditn(f'{self._name} no longer has {name}')
-            else:
-                log.conditn(f'Could not remove {name} from {self._name} because they did not have such a condition')
-        # End remove_condition method
-
-        def heal_hp(self, amount):
+        def heal_hp(self, character, amount):
             """Heal the specified amount of HP to the character
 
             Args:
-                - amount = (int) The amount to heal. If less than 0, will heal to max.
+                - character = (combatCharacter obj) The character that this resource obj is an attribute of
+                - amount    = (int) The amount to heal. If less than 0, will heal to max.
 
             Returns:
                 (int) The new current HP of the character
             """
+            if not isinstance(character, combatCharacter):
+                raise TypeError('arg character must be combatCharacter obj')
+            if (self._name != character._name):
+                raise ValueError('arg character must be the outer class of this resource obj')
             if not isinstance(amount, int):
                 raise TypeError('arg amount must be an int')
-            if ('death' in self.cond):
-                raise Exception('cannot heal a dead character')
+
+            if ('death' in character.char_conditions):
+                log.resource('cannot heal a dead character')
+                return 0
 
             if (amount < 0):
                 self.hp = 1*self._max_hp
@@ -1694,94 +1856,80 @@ class combatCharacter(object):
                 self.hp = min(self._max_hp, self.hp + amount)
                 log.resource(f'{self._name} was healed {amount} to HP={self.hp}')
 
-            if ((self.hp>0) and ('dying' in self.cond)):
-                self.remove_condition('dying')
+            if ((self.hp>0) and ('dying' in character.char_conditions)):
+                character.remove_condition('dying')
             return self.hp
         # End heal_hp method
 
-        def remove_hp(self, amount, do_death_saves=True):
+        def remove_hp(self, character, amount, do_death_saves=True):
             """Remove the specified amount of HP to the character
 
             Args:
+                - character = (combatCharacter obj) The character that this resource obj is an attribute of
                 - amount    = (int) The amount to remove. Must be non-negative.
                 - team      = (bool, optional) If the character does death saves, i.e. if they are a PC. Default=True.
 
             Returns:
                 (int) The new current HP of the character
             """
+            if not isinstance(character, combatCharacter):
+                raise TypeError('arg character must be combatCharacter obj')
+            if (self._name != character._name):
+                raise ValueError('arg character must be the outer class of this resource obj')
             if not isinstance(amount, int):
                 raise TypeError('arg amount must be an int')
             if (amount < 0):
                 raise ValueError('arg amount must be non-negative')
+
             remainder = self.hp - amount
             self.hp = max(remainder, 0)
             if (self.hp==0):
                 if (do_death_saves):
                     if (abs(remainder)>=self._max_hp):
-                        self.add_condition('death', 'indefinite')
+                        character.add_condition('death', 'indefinite')
                         log.conditn(f'{self._name} is now dead after losing {amount} HP (excess was >= max HP)')
                     else:
-                        self.add_condition('dying', 'indefinite')
+                        character.add_condition('dying', 'indefinite')
                         log.conditn(f'{self._name} is now dying after losing {amount} HP')
                 else:
-                    self.add_condition('death', 'indefinite')
+                    character.add_condition('death', 'indefinite')
                     log.conditn(f'{self._name} is now dead after losing {amount} HP')
             else:
                 log.resource(f'{self._name} has {self.hp} HP after losing {amount} HP')
             return self.hp
         # End remove_hp method
 
-        def check_all_conditions(self, time_passed):
-            """Will check all conditions with the specified time passing. If any remain, will do the effects of those conditions if they trigger.
+        ################################
+        #=========== RESTING ===========
+        ################################
 
-            Args:
-                - time_passed = (str) Amount of time that has passed in # {unit} format. Possible units are [round, second, minute, hour, day, sont (start of next turn),
-                    eont (end of next turn)]. Example: 2 round or 3 minute.
-
-            Returns:
-                (int) How many conditions remain on the character
-            """
-            if (self.cond):
-                log.conditn(f'Checking conditions of {self._name}')
-                delete_list = []
-                for i_name, i_condition in self.cond.items():
-                    condition_end = i_condition.check_condition(time_passed=time_passed)
-                    if condition_end:
-                        delete_list.append(i_name)
-                    else:
-                        self.effect_on_check(i_name)
-                for i_name in delete_list:
-                    self.remove_condition(i_name)
-                return len(self.cond)
-            else:
-                return 0
-        # End check_all_conditions method
-
-        def long_rest(self, in_stats):
+        def long_rest(self, character):
             """The character will do a long rest, regaining all resources that come with it
 
             Args:
-                - in_stats = (stats obj) The stats of the character
+                - character = (combatCharacter obj) The character that this resource obj is an attribute of
 
             Returns:
                 No return value
             """
-            if not isinstance(in_stats, combatCharacter.stats):
-                raise TypeError('arg in_stats must be a combatCharacter.stats obj')
+            if not isinstance(character, combatCharacter):
+                raise TypeError('arg character must be a combatCharacter obj')
+            if (self._name != character._name):
+                raise ValueError('arg character must be the outer class of this resource obj')
             if (self.hp == 0):
                 log.resource(f'{self._name} cannot do long rest because they have 0 HP')
                 return
 
             # Character cannot recieve benefit of a long rest if they are dead
-            if ('death' in self.cond):
+            if ('death' in character.char_conditions):
                 return
 
             # Replenish HP
-            self.heal_hp(-1)
+            self.heal_hp(character=character, amount=-1)
 
             # Replenish hit dice
-            if in_stats.tot_hd:
-                replenish_count = max(in_stats.tot_hd // 2, 1)
+            if character.char_stats.tot_hd:
+                replenish_count = max(character.char_stats.tot_hd // 2, 1)
                 full_break = False
                 for i_faces in range(12, 2, -2):
                     if (i_faces not in self._max_hit_dice):
@@ -1800,9 +1948,9 @@ class combatCharacter(object):
                 log.resource(f'{self._name} restored {replenish_count} hit dice')
 
             # Replenish class features
-            for i_class, i_level in in_stats.class_level.items():
+            for i_class, i_level in character.char_stats.class_level.items():
                 if (i_class == 'bard'):
-                    self.bardic_insp = max(1, in_stats.get_mod('cha'))
+                    self.bardic_insp = max(1, character.char_stats.get_mod('cha'))
                     self.restore_all_slots()
                     log.resource(f'{self._name} restored their bard features after a long rest')
                 if (i_class == 'druid'):
@@ -1819,20 +1967,26 @@ class combatCharacter(object):
                     log.resource(f'{self._name} restored their warlock features after a long rest')
         # End long_rest method
 
-        def short_rest(self, in_stats, spend_dice=[]):
+        def short_rest(self, character, spend_dice=[]):
             """The character will do a short rest, regaining all resources that come with it
 
             Args:
-                - in_stats = (stats obj) The stats of the character
-                - spend_dice = (list of str, optional) The list of #d# string of hit dice to spend to heal. If Default=[], will skip spending hit dice.
+                - character     = (combatCharacter obj) The character that this resource obj is an attribute of
+                - spend_dice    = (list of str, optional) The list of #d# string of hit dice to spend to heal. If Default=[], will skip spending hit dice.
 
             Returns:
                 No return value
             """
-            if not isinstance(in_stats, combatCharacter.stats):
-                raise TypeError('arg in_stats must be a combatCharacter.stats obj')
+            if not isinstance(character, combatCharacter):
+                raise TypeError('arg character must be a combatCharacter obj')
+            if (self._name != character._name):
+                raise ValueError('arg character must be the outer class of this resource obj')
+            if (self.hp == 0):
+                log.resource(f'{self._name} cannot do long rest because they have 0 HP')
+                return
             if not isinstance(spend_dice, list):
                 raise TypeError('arg spend_dice must be a list')
+
             if spend_dice:
                 heal_total = 0
                 for i_str in spend_dice:
@@ -1844,12 +1998,12 @@ class combatCharacter(object):
                         if (self.hit_dice[parse_tuple[0]]==0):
                             break
                         self.hit_dice[parse_tuple[0]] -= 1
-                        heal_total += roll_d(parse_tuple[0]) + in_stats.get_mod('con')
-                log.resource(f'{in_stats._name} is using {spend_dice} hit dice to heal')
-                self.heal_hp(heal_total)
+                        heal_total += roll_d(parse_tuple[0]) + character.char_stats.get_mod('con')
+                log.resource(f'{self._name} is using {spend_dice} hit dice to heal')
+                self.heal_hp(character=character, amount=heal_total)
 
             # Replenish class features
-            for i_class, i_level in in_stats.class_level.items():
+            for i_class, i_level in character.char_stats.class_level.items():
                 if (i_class == 'druid'):
                     self.wild_shape = 2
                     log.resource(f'{self._name} restored some druid features after a short rest')
@@ -1863,80 +2017,25 @@ class combatCharacter(object):
                     log.resource(f'{self._name} restored their warlock features after a short rest')
         # End short_rest method
 
-        def get_resources_for_round(self, remove_first={}):
-            """Will get all resources the character has for the round
+        ################################
+        #========= DEATH SAVES =========
+        ################################
 
-            Args:
-                - remove_first = (dict, optional) Remove the specified resources first. Make sure all values are negative; using add_resource method.
-
-            Returns: (dict) The resources the character has
-                - Key       | Value
-                - regular   | (int) How many regular actions they have
-                - bonus     | (int) How many bonus actions they have
-                - reaction  | (int) How many reactions they have
-                - movement  | (int) How many feet of movement they have
-                - slots     | (dict of int) How many spell slots per level they have
-            """
-            self.add_resource(in_dict=remove_first)
-            return_val = {}
-            return_val['regular'] = self.regular_action
-            return_val['bonus'] = self.bonus_action
-            return_val['reaction'] = self.reaction
-            return_val['movement'] = self.movement
-            return_val['slots'] = self.spell_slots
-            log.debugall(f'{self._name} round resources={return_val}')
-            return return_val
-        # End get_resources_for_round method
-
-        def start_turn(self):
-            """The character will start their turn, regaining their actions and movement
-
-            Args:
-                No args
-
-            Returns: (dict) Resources for round. See get_resources_for_round method
-                - Key       | Value
-                - regular   | (int) How many regular actions they have
-                - bonus     | (int) How many bonus actions they have
-                - reaction  | (int) How many reactions they have
-                - movement  | (int) How many feet of movement they have
-                - slots     | (dict of int) How many spell slots per level they have
-            """
-            self.regular_action = 1
-            self.bonus_action = 1
-            self.movement = float(1*self._speed)
-            self.reaction = 1
-
-            # Restore unique resources
-            if ('genies_wrath' in self.miscellaneous):
-                self.miscellaneous['genies_wrath'] = 1
-
-            self.check_all_conditions('1 sont')
-            return self.get_resources_for_round()
-        # End start_turn method
-
-        def end_turn(self):
-            """Ends the turn of the character, triggering end of turn effects
-
-            Args:
-                No args
-
-            Returns:
-                No return value
-            """
-            self.check_all_conditions('1 eont')
-        # End end_turn method
-
-        def _gain_death_save(self, success, count=1):
+        def _gain_death_save(self, character, success, count=1):
             """Have the character gain a death save roll.
 
             Args:
+                - character = (combatCharacter obj) The character that this resource obj is an attribute of
                 - success   = (bool) If it was a successful roll. Otherwise a failure.
                 - count     = (int, optional) The number of rolls to add. One of [1,2]. 2 should only be used for fails.
 
             Returns:
                 No return value
             """
+            if not isinstance(character, combatCharacter):
+                raise TypeError('arg character must be a combatCharacter obj')
+            if (self._name != character._name):
+                raise ValueError('arg character must be the outer class of this resource obj')
             if success:
                 self.death_saves['success'] += 1
             else:
@@ -1944,17 +2043,17 @@ class combatCharacter(object):
             log.resource(f'{self._name} death saves = {self.death_saves}')
 
             if (self.death_saves['success'] >= 3):
-                self.add_condition('stabilized', 'indefinite')
+                character.add_condition('stabilized', 'indefinite')
             elif (self.death_saves['fail'] >= 3):
-                self.remove_condition('dying')
-                self.add_condition('death', 'indefinite')
+                character.remove_condition('dying')
+                character.add_condition('death', 'indefinite')
                 log.conditn(f'{self._name} is now dead after 3 death save failures')
             elif ((self.death_saves['fail'] > 0) and ('stabilized' in self.cond)):
-                self.remove_condition('stabilized')
+                character.remove_condition('stabilized')
                 log.conditn(f'{self._name} is no longer stabilized after gain a death save fail')
         # End _gain_death_save method
 
-        def do_death_save(self):
+        def do_death_save(self, character):
             """Have the character do a death save.
 
             Args:
@@ -1965,30 +2064,68 @@ class combatCharacter(object):
                 - success   | (int) The number of successful death saves
                 - fail      | (int) The number of failed death saves
             """
-            if ('dying' not in self.cond):
+            if not isinstance(character, combatCharacter):
+                raise TypeError('arg character must be a combatCharacter obj')
+            if (self._name != character._name):
+                raise ValueError('arg character must be the outer class of this resource obj')
+            if ('dying' not in character.char_conditions):
                 raise Exception('cannot do death save on character that is not dying')
-            if ('stabilized' in self.cond):
+            if ('stabilized' in character.char_conditions):
                 log.debug(f'{self._name} is already stabilized and does not need to do death saves')
                 return {"success":0, "fail":0}
 
             death_roll = roll_20()
             if (death_roll==20):
                 log.save(f'{self._name} critically succeeds on their death save')
-                self.heal_hp(1)
+                self.heal_hp(character=character, amount=1)
                 return {"success":0, "fail":0}
 
             if (death_roll>=10):
                 log.save(f'{self._name} succeeds on death save')
-                self._gain_death_save(True)
+                self._gain_death_save(character=character, success=True)
             elif (death_roll==1):
                 log.save(f'{self._name} critically fails their death save')
-                self._gain_death_save(False, 2)
+                self._gain_death_save(character=character, success=False, count=2)
             else:
                 log.save(f'{self._name} fails their death save')
-                self._gain_death_save(False)
+                self._gain_death_save(character=character, success=False)
             return self.death_saves
         # End do_death_save method
+
+        ################################
+        #======= ROUND HANDLING =======
+        ################################
+
+        def get_resources_for_round(self, character, remove_first={}):
+            """Will get all resources the character has for the round
+
+            Args:
+                - character     = (combatCharacter obj) The character this resource obj is an attribute of
+                - remove_first  = (dict, optional) Remove the specified resources first. Make sure all values are negative; using add_resource method.
+
+            Returns: (dict) The resources the character has
+                - Key       | Value
+                - regular   | (int) How many regular actions they have
+                - bonus     | (int) How many bonus actions they have
+                - reaction  | (int) How many reactions they have
+                - movement  | (int) How many feet of movement they have
+                - slots     | (dict of int) How many spell slots per level they have
+            """
+            self.add_resource(in_dict=remove_first, character=character)
+            return_val = {}
+            return_val['regular'] = self.regular_action
+            return_val['bonus'] = self.bonus_action
+            return_val['reaction'] = self.reaction
+            return_val['movement'] = self.movement
+            return_val['slots'] = self.spell_slots
+            log.debugall(f'{self._name} round resources={return_val}')
+            return return_val
+        # End get_resources_for_round method
     # End resources class
+
+    ################################
+    #======== ACTIONCHOOSER ========
+    ################################
 
     class actionChooser(object):
         """The available actions of a character and the bias they are likely to pick each one.
@@ -2003,14 +2140,28 @@ class combatCharacter(object):
         Methods:
             - add_action:           adds a new action for the character
             - remove_action:        removes an action this character has
+
             - change_bias:          change the bias of an action
             - update_bias:          have character consider their conditions to update their biases
+
             - get_all_actions:      gets all actions the character can do
             - can_do_action:        checks to see if character can do such an action
             - get_random_action:    will get a random action that this character can do
         """
         def __init__(self, name, in_json, category=[], include_action=[]):
             """Init of actionChooser
+
+            Args:
+                - name              = (str) The name of the character
+                - in_json           = (str) Path of a json to load all default actions
+                - category          = (list of str, optional) Which categories to automatically include. Default=[]
+                - include_action    = (list of str, optional) All other optional actions to load. These actions must be in the above json. Default=[]
+
+            Args:
+                - name              = (str) The name of the character
+                - in_json           = (str) Path of a json to load all default actions
+                - category          = (list of str, optional) Which categories to automatically include. Default=[]
+                - include_action    = (list of str, optional) All other optional actions to load. These actions must be in the above json. Default=[]
 
             Attributes:
                 - _name     = (str) The name of the character
@@ -2194,7 +2345,7 @@ class combatCharacter(object):
             if not isinstance(char_obj, combatCharacter):
                 raise TypeError('arg char_obj must be a combatCharacter.resources obj')
             if ('druid' in char_obj.char_stats.class_level):
-                if ('shillelagh' in char_obj.char_resources.cond):
+                if ('shillelagh' in char_obj.char_conditions):
                     char_obj.char_actions.change_bias({'cast_shillelagh':0})
                 else:
                     char_obj.char_actions.change_bias({'cast_shillelagh':16})
@@ -2290,39 +2441,9 @@ class combatCharacter(object):
         # End get_random_action method
     # End actionChooser class
 
-    def take_damage(self, damage, was_crit=False):
-        """Will subtract the specified damage from the character's current HP.
-
-        Args:
-            - damage    = (dict) The amount of damage the character took
-                - Key               | Value
-                - {type of damage}  | (int) Damage of that value type
-            - was_crit  = (bool, optional) If the damage was from a critical hit. Default=False
-
-        Returns: (tuple)
-            - (int) The total damage taken
-            - (int) The new current HP of the character
-        """
-        if not isinstance(damage, dict):
-            raise TypeError('arg damage must be an dict')
-        total_damage = 0
-        for i_type, i_value in damage.items():
-            if ('petrified' in self.char_resources.cond):
-                total_damage += i_value // 2
-            if (i_type in self.char_stats.imm):
-                continue
-            if (i_type in self.char_stats.res):
-                total_damage += i_value // 2
-            elif (i_type in self.char_stats.vul):
-                total_damage += i_value * 2
-            else:
-                total_damage += i_value
-        log.damage(f'{self._name} takes {total_damage} adjusted damage')
-        if ('dying' in self.char_resources.cond):
-            self.char_resources._gain_death_save(False, 2 if was_crit else 1)
-            return (total_damage, 0)
-        return (total_damage, self.char_resources.remove_hp(total_damage, self.team=='pc'))
-    # End take_damage method
+    ################################
+    #=========== MODIFY ===========
+    ################################
 
     def add_attack(self, in_dict):
         """Add attacks to available attacks of character
@@ -2372,7 +2493,45 @@ class combatCharacter(object):
         log.stat(f'set {self._name} stats: {stat_dict}')
     # End set_stats method
 
-    def roll_stat(self, name, adv=0):
+    def take_damage(self, damage, was_crit=False):
+        """Will subtract the specified damage from the character's current HP.
+
+        Args:
+            - damage    = (dict) The amount of damage the character took
+                - Key               | Value
+                - {type of damage}  | (int) Damage of that value type
+            - was_crit  = (bool, optional) If the damage was from a critical hit. Default=False
+
+        Returns: (tuple)
+            - (int) The total damage taken
+            - (int) The new current HP of the character
+        """
+        if not isinstance(damage, dict):
+            raise TypeError('arg damage must be an dict')
+        total_damage = 0
+        for i_type, i_value in damage.items():
+            if ('petrified' in self.char_conditions):
+                total_damage += i_value // 2
+            if (i_type in self.char_stats.imm):
+                continue
+            if (i_type in self.char_stats.res):
+                total_damage += i_value // 2
+            elif (i_type in self.char_stats.vul):
+                total_damage += i_value * 2
+            else:
+                total_damage += i_value
+        log.damage(f'{self._name} takes {total_damage} adjusted damage')
+        if ('dying' in self.char_conditions):
+            self.char_resources._gain_death_save(False, 2 if was_crit else 1)
+            return (total_damage, 0)
+        return (total_damage, self.char_resources.remove_hp(self, total_damage, self.team=='pc'))
+    # End take_damage method
+
+    ################################
+    #=========== PROCESS ===========
+    ################################
+
+    def char_roll_stat(self, name, adv=0):
         """Have the character do a ability check, skill check, or saving throw. Will be affected by conditions.
 
         Args:
@@ -2388,7 +2547,7 @@ class combatCharacter(object):
             raise TypeError('arg adv must be an int')
 
         def _overlap(in_set):
-            return not (set(self.char_resources.cond).isdisjoint(in_set))
+            return not (set(self.char_conditions).isdisjoint(in_set))
         # End _overlap inner function
 
         # 20230928 Currently doing a blanket fail for certain conditions, don't know how to handle the specifics yet
@@ -2432,14 +2591,152 @@ class combatCharacter(object):
             raise ValueError('arg name was not an ability or skill')
 
         # Check for bardic inspiration
-        if ('bardic_inspiration' in self.char_resources.cond):
-            bi_roll = roll_d_str(self.char_resources.cond['bardic_inspiration']._properties)
+        if ('bardic_inspiration' in self.char_conditions):
+            bi_roll = roll_d_str(self.char_conditions['bardic_inspiration']._properties)
             log.action(f'{self._name} is using their bardic inspiration and rolled a {bi_roll}')
             return_val += bi_roll
             self.char_resources.remove_condition('bardic_inspiration')
 
         return return_val
-    # End roll_stat method
+    # End char_roll_stat method
+
+    def add_condition(self, name, duration, prop=''):
+        """Adds a condition to the character. If character already has the condition, will add more time to its remaining time. Certain conditions will
+        also cause the character to gain other conditions. Make sure that you also have those conditions removed in remove_condition method.
+
+        Args:
+            - name      = (str) Name of this condtion
+            - duration  = (str) Duration of this condition in # {unit} format. Possible units are [round, second, minute, hour, day, sont (start of next turn),
+                eont (end of next turn)]. Example: 2 round or 3 minute. Can be 'indefinite' if there is no duration
+            - prop      = (str, optional) Any properties that should go with the condition. Default=''
+
+        Returns:
+            No return value
+        """
+        if (name in self.char_conditions):
+            log.conditn(f'Adding {duration} for {name} on {self._name}')
+            self.char_conditions[name].add_time(duration=duration)
+            return
+        
+        self.char_conditions[name] = condition(name=name, duration=duration, prop=prop)
+        if (duration=='indefinite'):
+            log.conditn(f'{self._name} now has condition {name} indefinitely')
+        else:
+            log.conditn(f'{self._name} now has condition {name} for {duration}')
+
+        # Effects on gain
+        self.char_conditions[name]._effect_on_gain(self)
+
+        # Certain conditions will also cause the character to gain other conditions
+        if (name=='dying'):
+            self.add_condition('unconscious', 'indefinite')
+        if (name in ['paralyzed', 'petrified', 'stunned', 'unconscious']):
+            self.add_condition('incapacitated', 'indefinite')
+        if (name=='unconscious'):
+            self.add_condition('prone', 'indefinite')
+
+        # Certain conditions will remove other conditions
+        if (name=='incapacitated'):
+            self.remove_condition('dodge')
+    # End add_condition method
+
+    def remove_condition(self, name):
+        """Remove the specified condtion from the character
+
+        Args:
+            - name = (str) Name of the condition to remove
+
+        Returns:
+            No return value
+        """
+        if (name in self.char_conditions):
+            self.char_conditions[name]._effect_on_loss(self)
+            del self.char_conditions[name]
+
+            # Certain conditions should be removed when losing other conditions
+            if (name=='dying'):
+                self.remove_condition('unconscious')
+            if (name in ['paralyzed', 'petrified', 'stunned', 'unconscious']):
+                self.remove_condition('incapacitated')
+
+            log.conditn(f'{self._name} no longer has {name}')
+            return
+
+        log.conditn(f'Could not remove {name} from {self._name} because they did not have such a condition')
+    # End remove_condition method
+
+    def check_all_conditions(self, time_passed):
+        """Will check all conditions with the specified time passing. If any remain, will do the effects of those conditions if they trigger.
+
+        Args:
+            - time_passed = (str) Amount of time that has passed in # {unit} format. Possible units are [round, second, minute, hour, day, sont (start of next turn),
+                eont (end of next turn)]. Example: 2 round or 3 minute.
+
+        Returns:
+            (int) How many conditions remain on the character
+        """
+        if self.char_conditions:
+            log.conditn(f'Checking conditions of {self._name}')
+            delete_list = []
+            for i_name, i_condition in self.char_conditions.items():
+                if not isinstance(i_condition, condition):
+                    raise TypeError(f'key {i_name} has its corresponding value not a condition object')
+                condition_end = i_condition.check_condition(time_passed=time_passed)
+                if condition_end:
+                    delete_list.append(i_name)
+            for i_name in delete_list:
+                self.remove_condition(i_name)
+            return len(self.char_conditions)
+
+        return 0
+    # End check_all_conditions method
+
+    ################################
+    #============ TURN ============
+    ################################
+
+    def start_turn(self):
+        """The character will start their turn, regaining their actions and movement
+
+        Args:
+            No args
+
+        Returns: (dict) Resources for round. See get_resources_for_round method
+            - Key       | Value
+            - regular   | (int) How many regular actions they have
+            - bonus     | (int) How many bonus actions they have
+            - reaction  | (int) How many reactions they have
+            - movement  | (int) How many feet of movement they have
+            - slots     | (dict of int) How many spell slots per level they have
+        """
+        self.char_resources.regular_action = 1
+        self.char_resources.bonus_action = 1
+        self.char_resources.reaction = 1
+        self.char_resources.movement = 1.0 * self.char_resources._speed
+
+        # Restore unique resources
+        if ('genies_wrath' in self.char_resources.miscellaneous):
+            self.char_resources.miscellaneous['genies_wrath'] = 1
+
+        self.check_all_conditions('1 sont')
+        return self.char_resources.get_resources_for_round(self)
+    # End start_turn method
+
+    def end_turn(self):
+        """Ends the turn of the character, triggering end of turn effects
+
+        Args:
+            No args
+
+        Returns:
+            No return value
+        """
+        self.check_all_conditions('1 eont')
+    # End end_turn method
+
+    ################################
+    #========= SIMULATION =========
+    ################################
 
     def get_random_attack(self):
         """Gets a random attack of this character, weighted by the biases
@@ -2483,17 +2780,17 @@ class combatCharacter(object):
         """
         if (act_type not in ['regular', 'move', 'bonus', 'reaction', 'free', 'special']):
             raise ValueError('arg act_type is not one of the valid action types')
-        if ('death' in self.char_resources.cond):
+        if ('death' in self.char_conditions):
             log.simulatn(f'{self._name} will do nothing because they are dead')
-            return 'nothing' if (act_type=='action') else None
+            return None
 
         # Update biases
         self.char_actions.update_bias(self)
 
         # Get regular action
         if (act_type=='regular'):
-            if ('dying' in self.char_resources.cond):
-                if ('stabilized' in self.char_resources.cond):
+            if ('dying' in self.char_conditions):
+                if ('stabilized' in self.char_conditions):
                     log.simulatn(f'{self._name} will do nothing because they are dying but stabilized')
                     return 'nothing'
                 log.simulatn(f'{self._name} will do a death save because they are dying')
@@ -2504,7 +2801,7 @@ class combatCharacter(object):
 
         # Get bonus action
         if (act_type=='bonus'):
-            if ('dying' in self.char_resources.cond):
+            if ('dying' in self.char_conditions):
                 log.simulatn(f'{self._name} will do nothing because because they are dying')
                 return None
             log.simulatn(f'{self._name} will search for available bonus action')
@@ -2513,10 +2810,10 @@ class combatCharacter(object):
 
         # Get move action
         if (act_type=='move'):
-            if ('prone' in self.char_resources.cond):
+            if ('prone' in self.char_conditions):
                 log.simulatn(f'{self._name} can only crawl because they are prone')
                 return 'crawl'
-            if ('grappling' in self.char_resources.cond):
+            if ('grappling' in self.char_conditions):
                 log.simulatn(f'{self._name} can only move_while_grappling because they are grappling something')
                 return 'move_while_grappling'
             log.simulatn(f'{self._name} will search for an available move action')
@@ -2528,35 +2825,48 @@ class combatCharacter(object):
     # End get_random_action method
 # End combatCharacter class
 
+################################################################
+#=========================== COMBAT ===========================
+################################################################
+
 class combat(object):
     """The object that handles all the combatCharacter and interactions between them.
 
     Args:
-        - in_json = (str, optional) Path of a json to load automaticall add all characters. Default=''
+        - in_json       = (str, optional) Path of a json to load automaticall add all characters. Default=''
+        - max_round     = (int, optional) The desired number of rounds to simulate, provided there are no overrides. See combat.simulate_to_end method
+        - no_pictures   = (bool, optional) If there should be no attack pictures generated. Default=False.
 
     Classes:
         characterAction:    action that a character can do
 
     Methods:
         - add_char                  :adds a new character to the battle
-        - reset_battle              :restores all characters to full
-        - _log_hp                   :logs the current HP of a character
-        - log_combat_hp             :logs the current HP of all characters
-        - set_initiative            :sets the initiative order
-        - _get_next_in_initiative   :gets the next person in initiative order
         - _remove_valid             :removes character from valid list
         - _get_rand_valid           :get a random character from the valid lists
+
         - _add_time                 :add to estimated time
         - get_targets_for_action    :get the targets for an action
         - char_do_action            :have specified character do an action
         - char_do_random_action     :have the specified character do a random action
+
+        - _log_hp                   :logs the current HP of a character
+        - log_combat_hp             :logs the current HP of all characters
+
+        - reset_battle              :restores all characters to full
+        - set_initiative            :sets the initiative order
+        - _get_next_in_initiative   :gets the next person in initiative order
+
+        - simulate_turn             :simulate the turn of a character
         - simulate_round            :simulate one round of combat
         - simulate_to_end           :simulate until end of combat
     """
-    def __init__(self, in_json='characters.json'):
+    def __init__(self, in_json='characters.json', max_round=100, no_pictures=False):
         """Init for combat
 
         Attributes:
+            - _default_max      = (int) The default number of rounds to simulate to. See simulate_to_end method
+            - _no_picture       = (bool) If there should be attack pictures
             - battlevalid       = (bool) If the battle is valid and can be simulated
             - round             = (int) What round the battle is in
             - _name_spacing     = (int) The length of the longest name of all characters
@@ -2569,10 +2879,17 @@ class combat(object):
             - current_turn      = (int) Which character has their turn during the current round
             - estimated_time    = (int) Estimated time that has elapsed over the battle in seconds
             - cached_actions    = (dict of characterAction obj) All actions that have been created already
+            - environment       = (dict) The current status combat environment
+                - Key           | Value
+                - {status name} | (any) The value for this status key
         """
         log.header('Creating battle stage')
+        if not isinstance(max_round, int):
+            raise TypeError('arg max_round must be an int')
+        self._default_max = max_round
+        self._no_picture = bool(no_pictures)
         self.battlevalid = False
-        self.round = 0
+        self.round = 1
         self._name_spacing = 1
         self.characters = {}
         self._valid_good = []
@@ -2598,14 +2915,20 @@ class combat(object):
         self.current_turn = ''
         self.estimated_time = 0
         self.cached_actions = {}
+        self.environment = {}
         log.header('finished battle stage init\n')
     # End __init__
+
+################################
+#======= CHARACTERACTION =======
+################################
 
     class characterAction(object):
         """Handler for an action for a character to do
 
         Args:
-            - name = (str) The name of the action to add, which will be taken from actions.json
+            - name              = (str) The name of the action to add, which will be taken from actions.json
+            - attack_picture    = (bool, optional) If the attack picture should be created. Default=True.
 
         Methods:
             - _log_attack_picture   :logs the infographic of the attack
@@ -2616,7 +2939,7 @@ class combat(object):
             - _do_special           :do a special action
             - do_action             :does this action
         """
-        def __init__(self, name):
+        def __init__(self, name, attack_picture=True):
             """Init of characterAction
 
             Attributes:
@@ -2627,6 +2950,7 @@ class combat(object):
                 - _spacing  = (int, optional) The spacing for names. Default=10
             """
             log.debugall(f'creating action {name}')
+            self._attack_picture = attack_picture
             with open('actions.json', 'r') as read_file:
                 data = json.load(read_file)
                 for i_category, i_action_dict in data.items():
@@ -2660,8 +2984,6 @@ class combat(object):
             Returns:
                 No return value
             """
-            if not ATTACK_PICTURES:
-                return
             str_list = ['' for i in range(5)]
             # Source
             largest_spacing = max(len(source), len(in_attack))
@@ -2742,10 +3064,10 @@ class combat(object):
             """Have the source character do specified attack on target character
 
             Args:
-                - source    = (combatCharacter obj) The source of the attack
-                - target    = (combatCharacter obj) The target of the attack
-                - in_attack = (attack obj) The attack obj of this attack
-                - pass_arg  = (dict, optional) Any additional information that needs to be passed to the attack obj
+                - source        = (combatCharacter obj) The source of the attack
+                - target        = (combatCharacter obj) The target of the attack
+                - in_attack     = (attack obj) The attack obj of this attack
+                - pass_arg      = (dict, optional) Any additional information that needs to be passed to the attack obj
 
             Returns:
                 (int) The current HP of the target after the attack
@@ -2775,7 +3097,8 @@ class combat(object):
                 actual_damage = 0
                 return_val = target.char_resources.hp
 
-            self._log_attack_picture(source._name, target._name, in_attack.name, roll_result[0], roll_result[1], hit, damage, actual_damage, return_val)
+            if self._attack_picture:
+                self._log_attack_picture(source._name, target._name, in_attack.name, roll_result[0], roll_result[1], hit, damage, actual_damage, return_val)
             return return_val
         # End _do_attack method
 
@@ -2846,10 +3169,10 @@ class combat(object):
                     prop = '1d8'
                 else:
                     prop = '1d6'
-                target.char_resources.add_condition(name='bardic_inspiration', duration='10 minute', prop=prop)
+                target.add_condition(name='bardic_inspiration', duration='10 minute', prop=prop)
                 return 'bardic_inspiration'
             if (self._name=='dodge'):
-                source.char_resources.add_condition('dodge', '1 sont')
+                source.add_condition('dodge', '1 sont')
         # End _do_stats method
 
         def _do_special(self, source, pass_arg=None):
@@ -2865,20 +3188,20 @@ class combat(object):
             if not isinstance(source, combatCharacter):
                 raise TypeError('arg source must be a combatCharacter obj')
             if (self._name=='long_rest'):
-                source.char_resources.long_rest(source.char_stats)
+                source.char_resources.long_rest(source)
                 return {source._name: 0}
             if (self._name=='short_rest'):
-                source.char_resources.short_rest(source.char_stats, spend_dice=pass_arg)
+                source.char_resources.short_rest(source, spend_dice=pass_arg)
                 return {source._name: 0}
             if (self._name=='death_save'):
-                return {source._name: source.char_resources.do_death_save()}
+                return {source._name: source.char_resources.do_death_save(source)}
             if (self._name=='wild_shape'):
                 if not isinstance(pass_arg, str):
                     raise TypeError('arg pass_arg must be a str for wild_shape')
-                source.char_resources.add_condition('wild_shape', f'{source.char_stats.class_level["druid"] // 2} hour', pass_arg)
+                source.add_condition('wild_shape', f'{source.char_stats.class_level["druid"] // 2} hour', pass_arg)
                 return {source._name: f'wild shape as {pass_arg}'}
             if (self._name=='drop_wild_shape'):
-                source.char_resources.remove_condition('wild_shape')
+                source.remove_condition('wild_shape')
                 return {source._name: 'dropped wild shape'}
         # End _do_special method
 
@@ -2923,7 +3246,7 @@ class combat(object):
                         if ('unarmed' in i_attack):
                             pass_arg = i_attack
                             break
-                if ('shillelagh' in source.char_resources.cond):
+                if ('shillelagh' in source.char_conditions):
                     if ('club' in pass_arg):
                         pass_arg = 'club_shillelagh'
                     elif ('quarterstaff' in pass_arg):
@@ -2977,6 +3300,10 @@ class combat(object):
             return return_val
         # End do_action method
     # End characterAction class
+
+################################
+#====== HANDLE CHARACTERS ======
+################################
 
     def add_char(self, name, team, stats={}, attacks={}, unique_actions={}, bias={}, act_cat=[], act_inc=[], res_inc=[], prop={}, instances=1):
         """Will add a character to the battle
@@ -3053,137 +3380,6 @@ class combat(object):
         self._name_spacing = max(self._name_spacing, len(name)+2)
     # End add_char method
 
-    def reset_battle(self):
-        """Have all characters do a long rest to reset the battle
-
-        Args:
-            No args
-
-        Returns:
-            No return value
-        """
-        log.battle('reseting the battle')
-        for i_name, i_character in self.characters.items():
-            self.char_do_action(i_name, 'long_rest')
-        self.estimated_time = 0
-    # End reset_battle method
-
-    def _log_hp(self, character):
-        """Logs the HP of the specified character
-
-        Args:
-            - character = (str) Name of the character to log
-
-        Returns:
-            No return value
-        """
-        if not isinstance(character, str):
-            raise TypeError('arg character must be a str')
-        if (character not in self.characters):
-            raise ValueError(f'{character} is not a valid character')
-        char_obj = self.characters[character]
-        if not isinstance(char_obj, combatCharacter):
-            raise TypeError(f'{character} has its corresponding obj not as combatCharacter')
-
-        current_hp = char_obj.char_resources.hp
-        if ('death' in char_obj.char_resources.cond):
-            bar = '          DEAD           '
-        else:
-            max_hp = char_obj.char_stats.max_hp
-            blocks = int(25 * current_hp / max_hp)
-            space = ' ' * (25 - blocks)
-            blocks = '|' * blocks
-            bar = f'{space}{blocks}'
-        log.picture(f'{character:>{self._name_spacing}} HP = {current_hp:4} [{bar}]')
-    # End _log_hp method
-
-    def log_combat_hp(self):
-        """Logs the HP of every character
-
-        Args:
-            No args
-
-        Returns:
-            No return value
-        """
-        pc_list = []
-        ally_list = []
-        enemy_list = []
-        for i_name, i_obj in self.characters.items():
-            if (i_obj.team=='pc'):
-                pc_list.append(i_name)
-            elif (i_obj.team=='ally'):
-                if (i_name in self._valid_good):
-                    ally_list.append(i_name)
-            else:
-                if (i_name in self._valid_bad):
-                    enemy_list.append(i_name)
-
-        log.picture('PLAYER CHARACTERS')
-        for i_char in pc_list:
-            self._log_hp(i_char)
-        log.picture('ALLY NON-PLAYER CHARACTERS')
-        for i_char in ally_list:
-            self._log_hp(i_char)
-        log.picture('ENEMY NON-PLAYER CHARACTERS')
-        for i_char in enemy_list:
-            self._log_hp(i_char)
-    # End log_combat_hp method
-
-    def set_initiative(self):
-        """Have all characters roll for initiative, and save the initiative order. Repopulates attributes _valid_good and _valid_bad.
-
-        Args:
-            No args
-
-        Returns:
-            No return value
-        """
-        def by_second(in_val):
-            return in_val[1]
-
-        log.battle('all characters roll for initiative')
-        self.initiative = []
-        self._valid_bad = []
-        self._valid_good = []
-        for i_character, i_obj in self.characters.items():
-            self.initiative.append((i_character, i_obj.char_stats.roll_ability('dex')))
-            if (i_obj.team == 'enemy'):
-                self._valid_bad.append(i_character)
-            else:
-                self._valid_good.append(i_character)
-        self.initiative.sort(key=by_second, reverse=True)
-        log.battle(f'Initiative order: {self.initiative}')
-        self.log_combat_hp()
-        log.battle('================================================================')
-        log.battle('========================= BATTLE START =========================')
-        log.battle('================================================================\n')
-        self.battlevalid = True
-        self.current_turn = self.initiative[0][0]
-    # End set_initiative method
-
-    def _get_next_in_initiative(self):
-        """Gets the next person in initiative after the current character's turn
-
-        Args:
-            No args
-
-        Returns: (tuple)
-            - (str) The name of the character who is next
-            - (bool) If the last person in initiative was reached
-        """
-        current_index = -1
-        for i, i_tuple in enumerate(self.initiative):
-            if (i_tuple[0]==self.current_turn):
-                current_index = i
-                break
-        if (current_index==-1):
-            raise Exception('could not find the current character in initiative order; something went wrong')
-        if (current_index + 1 == len(self.initiative)):
-            return (self.initiative[0][0], True)    # We are at the end of initiative list; start from beginning
-        return (self.initiative[current_index + 1][0], False)
-    # End _get_next_in_initiative method
-
     def _remove_valid(self, character):
         """Removes a character from the valid lists so it cannot be a target any more
 
@@ -3234,6 +3430,10 @@ class combat(object):
         return random.choice(valid_list)
     # End _get_rand_valid method
 
+################################
+#======= COMBAT ACTIONS =======
+################################
+
     def _add_time(self, character, action_handle='attack'):
         """Add to the estimated elapsed time depending on the character and action
 
@@ -3274,7 +3474,7 @@ class combat(object):
             (list of str) What are the valid targets of this action
         """
         if (name not in self.cached_actions):
-            self.cached_actions[name] = self.characterAction(name=name)
+            self.cached_actions[name] = self.characterAction(name=name, attack_picture=not self._no_picture)
             log.debugall(f'cached action {name}')
         return self.cached_actions[name].targets
     # End get_targets_for_action method
@@ -3297,7 +3497,7 @@ class combat(object):
         if not isinstance(source_obj, combatCharacter):
             raise TypeError(f'{source} has its matching obj not as combatCharacter')
         if (name not in self.cached_actions):
-            self.cached_actions[name] = self.characterAction(name=name)
+            self.cached_actions[name] = self.characterAction(name=name, attack_picture=not self._no_picture)
             log.debugall(f'cached action {name}')
         action_todo = self.cached_actions[name]
         if not isinstance(action_todo, self.characterAction):
@@ -3310,7 +3510,7 @@ class combat(object):
 
         # Conditions check
         def _check_cond(in_str):
-            return in_str in source_obj.char_resources.cond
+            return in_str in source_obj.char_conditions
         # End _check_cond inner function
         if (_check_cond('dying') and not _check_cond('stabilized')):
             if (action_cost=='regular'):
@@ -3326,7 +3526,7 @@ class combat(object):
             if _check_cond('prone'):
                 log.action(f'{source} is prone and can only crawl')
                 if ('crawl' not in self.cached_actions):
-                    self.cached_actions['crawl'] = self.characterAction('crawl')
+                    self.cached_actions['crawl'] = self.characterAction('crawl', attack_picture=not self._no_picture)
                 action_todo = self.cached_actions['crawl']
             elif _check_cond('stunned') or _check_cond('unconscious'):
                 log.action(f'{source} cannot move because they are stunned or unconscious')
@@ -3401,12 +3601,12 @@ class combat(object):
         log.action(print_str)
         affected_dict = action_todo.do_action(source=source_obj, target=obj_list, pass_arg=pass_arg)
         log.debug(f'affected by action of {source}: {affected_dict}')
-        source_obj.char_resources.add_resource({action_cost: -1 if (action_cost != 'movement') else -1*pass_arg})
+        source_obj.char_resources.add_resource({action_cost: -1 if (action_cost != 'movement') else -1*pass_arg}, source_obj)
 
         # Check if target should be removed
         if (action_todo._handle=='attack'):
             for i_name, i_hp in affected_dict.items():
-                if ((i_hp==0) and ('death' in self.characters[i_name].char_resources.cond)):
+                if ((i_hp==0) and ('death' in self.characters[i_name].char_conditions)):
                     log.battle(f'removing {i_name} because they are dead')
                     self.battlevalid = not self._remove_valid(i_name)
         if (action_todo._name=='death_save'):
@@ -3441,6 +3641,150 @@ class combat(object):
         return self.char_do_action(source=source, name=random_action)
     # End char_do_random_action method
 
+################################
+#========== PICTURES ==========
+################################
+
+    def _log_hp(self, character):
+        """Logs the HP of the specified character
+
+        Args:
+            - character = (str) Name of the character to log
+
+        Returns:
+            No return value
+        """
+        if not isinstance(character, str):
+            raise TypeError('arg character must be a str')
+        if (character not in self.characters):
+            raise ValueError(f'{character} is not a valid character')
+        char_obj = self.characters[character]
+        if not isinstance(char_obj, combatCharacter):
+            raise TypeError(f'{character} has its corresponding obj not as combatCharacter')
+
+        current_hp = char_obj.char_resources.hp
+        if ('death' in char_obj.char_conditions):
+            bar = '          DEAD           '
+        else:
+            max_hp = char_obj.char_stats.max_hp
+            blocks = int(25 * current_hp / max_hp)
+            space = ' ' * (25 - blocks)
+            blocks = '|' * blocks
+            bar = f'{space}{blocks}'
+        log.picture(f'{character:>{self._name_spacing}} HP = {current_hp:4} [{bar}]')
+    # End _log_hp method
+
+    def log_combat_hp(self):
+        """Logs the HP of every character
+
+        Args:
+            No args
+
+        Returns:
+            No return value
+        """
+        pc_list = []
+        ally_list = []
+        enemy_list = []
+        for i_name, i_obj in self.characters.items():
+            if (i_obj.team=='pc'):
+                pc_list.append(i_name)
+            elif (i_obj.team=='ally'):
+                if (i_name in self._valid_good):
+                    ally_list.append(i_name)
+            else:
+                if (i_name in self._valid_bad):
+                    enemy_list.append(i_name)
+
+        log.picture('PLAYER CHARACTERS')
+        for i_char in pc_list:
+            self._log_hp(i_char)
+        log.picture('ALLY NON-PLAYER CHARACTERS')
+        for i_char in ally_list:
+            self._log_hp(i_char)
+        log.picture('ENEMY NON-PLAYER CHARACTERS')
+        for i_char in enemy_list:
+            self._log_hp(i_char)
+    # End log_combat_hp method
+
+################################
+#=========== SET UP ===========
+################################
+
+    def reset_battle(self):
+        """Have all characters do a long rest to reset the battle
+
+        Args:
+            No args
+
+        Returns:
+            No return value
+        """
+        log.battle('reseting the battle')
+        for i_name, i_character in self.characters.items():
+            self.char_do_action(i_name, 'long_rest')
+        self.round = 1
+        self.estimated_time = 0
+    # End reset_battle method
+
+    def set_initiative(self):
+        """Have all characters roll for initiative, and save the initiative order. Repopulates attributes _valid_good and _valid_bad.
+
+        Args:
+            No args
+
+        Returns:
+            No return value
+        """
+        def by_second(in_val):
+            return in_val[1]
+
+        log.battle('all characters roll for initiative')
+        self.initiative = []
+        self._valid_bad = []
+        self._valid_good = []
+        for i_character, i_obj in self.characters.items():
+            self.initiative.append((i_character, i_obj.char_stats.roll_ability('dex')))
+            if (i_obj.team == 'enemy'):
+                self._valid_bad.append(i_character)
+            else:
+                self._valid_good.append(i_character)
+        self.initiative.sort(key=by_second, reverse=True)
+        log.battle(f'Initiative order: {self.initiative}')
+        self.log_combat_hp()
+        log.battle('================================================================')
+        log.battle('========================= BATTLE START =========================')
+        log.battle('================================================================\n')
+        self.battlevalid = True
+        self.current_turn = self.initiative[0][0]
+    # End set_initiative method
+
+    def _get_next_in_initiative(self):
+        """Gets the next person in initiative after the current character's turn
+
+        Args:
+            No args
+
+        Returns: (tuple)
+            - (str) The name of the character who is next
+            - (bool) If the last person in initiative was reached
+        """
+        current_index = -1
+        for i, i_tuple in enumerate(self.initiative):
+            if (i_tuple[0]==self.current_turn):
+                current_index = i
+                break
+        if (current_index==-1):
+            raise Exception('could not find the current character in initiative order; something went wrong')
+        if (current_index + 1 == len(self.initiative)):
+            return (self.initiative[0][0], True)    # We are at the end of initiative list; start from beginning
+        return (self.initiative[current_index + 1][0], False)
+    # End _get_next_in_initiative method
+
+################################
+#====== COMBAT SIMULATION ======
+################################
+
     def simulate_turn(self, character=''):
         """Simulate the turn of the specified character.
 
@@ -3462,13 +3806,13 @@ class combat(object):
         
         return_val = 0
         log.turn(f'Starting turn of {character} at {round(self.estimated_time / 60, 2)} minutes')
-        resources = char_obj.char_resources.start_turn()
+        resources = char_obj.start_turn()
 
         # Do regular actions
         if (resources['regular'] > 0):
             for i in range(resources['regular']):
                 return_val += self.char_do_random_action(character, 'regular')
-        resources = char_obj.char_resources.get_resources_for_round()
+        resources = char_obj.char_resources.get_resources_for_round(char_obj)
 
         # Do bonus actions
         if (resources['bonus'] > 0):
@@ -3480,7 +3824,7 @@ class combat(object):
             return_val += self.char_do_random_action(character, 'move')
 
         # End turn
-        char_obj.char_resources.end_turn()
+        char_obj.end_turn()
         log.turn(f'Finished turn of {character} at {round(self.estimated_time / 60, 2)} minutes (took {return_val} seconds)\n')
         return return_val
     # End simulate_turn method
@@ -3511,23 +3855,27 @@ class combat(object):
         self.round += 1
     # End simulate round method
 
-    def simulate_to_end(self, max_round=100):
+    def simulate_to_end(self, max_round=0):
         """Will keep doing simulate_round until the battle is over (one side has no more valid targets) or the round limit is hit
 
         Args:
-            - max_round = (int, optional) The maximum number of rounds. Default=100.
+            - max_round = (int, optional) The maximum number of rounds. If < 1, will use attribute _default_max. Default=0.
 
         Returns:
             (int) The number of rounds that was simulated
         """
         self.reset_battle()
         self.set_initiative()
-        return_val = max_round
+        if (max_round < 1):
+            max_round = self._default_max
+        return_val = 1*max_round
         for i in range(max_round):
             self.simulate_round()
             if not self.battlevalid:
                 return_val = self.round
                 break
+        else:
+            log.battle(f'Ending early because hit round limit={self._default_max}')
         log.battle(f'Finished combat after {return_val} rounds (estimated time={round(self.estimated_time / 60, 2)} minutes)')
         return return_val
     # End simulate_to_end method
@@ -3537,7 +3885,7 @@ class combat(object):
 #============================================================ MAIN ============================================================
 ################################################################################################################################
 
-def main():
+def main(in_json='', max_round=0, no_pictures=False):
     """Automatically creates a battle and simulates it to the end of combat.
 
     Args:
@@ -3546,7 +3894,11 @@ def main():
     Returns:
         None
     """
-    battle = combat()
+    args = parser.parse_args()
+    if (in_json or max_round):
+        battle = combat(in_json=in_json, max_round=max_round, no_pictures=no_pictures)
+    else:
+        battle = combat(args.charJson, args.numRounds, args.noPicture)
     try:
         battle.simulate_to_end()
     except Exception as err:
