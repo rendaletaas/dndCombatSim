@@ -1,7 +1,7 @@
 ﻿# description:  Module to create and handle custom logger.
 # author:       Taas, Rendale Mark
 # created:      20230925
-# last edited:  20230930
+# last edited:  20231016
 
 """Designs and creates a custom logger for dndbattlesim.
 

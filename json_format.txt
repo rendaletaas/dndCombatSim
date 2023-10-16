@@ -17,7 +17,8 @@ each character must have a unique name; if you wish to create multiple instances
         "int": (int) The intelligence score of the character,
         "wis": (int) The wisdom score of the character,
         "cha": (int) The charisma score of the character,
-        "skills": (list of str, optional) Any skills the character; use underscores e.g. sleight_of_hand;
+        "skills": (list of str, optional) Any skills the character is proficient; use underscores e.g. sleight_of_hand;
+        "expert": (list of str, optional) Any skill the character has expertise in; should be disjoint with skills above;
         "ac": (int) The armor class of the character,
         "max_hp": (int or str) If int, the max HP of the character; if str, will roll for the HP on creation e.g. 2d6+3,
         "hit_dice": (list of str, optional) The hit dice of the character e.g. ["3d8", "1d10"],
@@ -69,7 +70,7 @@ each action must have a unique name; omit apostrophes
             "bias": (int) The bias that the character will take this action; the higher the more likely 0 meaning never; one of [16,8,4,2,1,0],
             "type": (str) The type of action that this is; one of ["regular", "bonus", "movement", "reaction", "free", "special"],
             "targets": (list of str, optional) The targets of the action; list elements are one of ["self", "ally", "enemy"],
-            "handle": (str) How the code should handle the action; one of ["attack", "spell", "move", "stat", "contest", "special"]
+            "handle": (str) How the code should handle the action; one of ["attack", "spell", "movement", "auto", "contest", "special"]
         }
     }
 }
@@ -98,6 +99,6 @@ each spell must have a unique name; omit apostrophes
         "cast": (str) The casting cost; one of ["regualar", "bonus", "reaction"],
         "target": (list of str) The targets of the spell; list elements one of ["self", "ally", "enemies"],
         "concentration": (bool) If this spell uses concentration,
-        "duration": (str) The duration of the spell effect; in form of # {unit}; unit is one of ["round", "second", "minute", "hour", "day"] e.g. "1 round" or "5 day"
+        "duration": (str) The duration of the spell effect; in form of # {unit}; unit is one of ["round", "second", "minute", "hour", "day"] e.g. "1 round" or "5 day"; can also be "instantaneous"
     }
 }

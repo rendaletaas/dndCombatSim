@@ -17,8 +17,7 @@
             "max_hp": 35,
             "hit_dice": ["4d8"],
             "saves": ["str", "dex"],
-            "speed": 40,
-            "tools": ["simple_weapon", "shortsword"]
+            "speed": 40
         },
         "attacks": {
             "handaxe": 16
@@ -109,8 +108,7 @@
             "max_hp": 27,
             "hit_dice": ["4d8"],
             "saves": ["str", "dex"],
-            "speed": 40,
-            "tools": ["simple_weapon", "shortsword"]
+            "speed": 40
         },
         "attacks": {
             "shortsword": 16
@@ -184,6 +182,81 @@
         },
         "resource": ["genies_wrath"]
     },
+    {
+        "name": "keziah",
+        "team": "pc",
+        "stats": {
+            "level":4,
+            "class_level": {"cleric":4},
+            "prof": 2,
+            "str": 14,
+            "dex": 12,
+            "con": 10,
+            "int": 13,
+            "wis": 15,
+            "cha": 13,
+            "skills": ["history", "animal_handling", "survival", "persuasion"],
+            "ac": 16,
+            "max_hp": 23,
+            "hit_dice": ["4d8"],
+            "saves": ["wis", "cha"],
+            "speed": 30,
+            "spellcast": "wis",
+            "slots": {"1": 4, "2":3}
+        },
+        "attacks": {
+            "mace": 16
+        },
+        "actions": {
+            "inc_category":["cleric"],
+            "inc_action":["cd_radiance_of_the_dawn", "warding_flare"]
+        },
+        "bias": {
+            "cd_radiance_of_the_dawn":16
+        },
+        "property": {
+            "domain": "light"
+        },
+        "resource": ["warding_flare"]
+    },
+    {
+        "name": "sylvie",
+        "team": "pc",
+        "stats": {
+            "level":4,
+            "class_level": {"rogue":4},
+            "prof": 2,
+            "str": 8,
+            "dex": 15,
+            "con": 11,
+            "int": 13,
+            "wis": 14,
+            "cha": 12,
+            "skills": ["athletics", "acrobatics", "religion", "medicine"],
+            "expert": ["sleight_of_hand", "stealth"],
+            "ac": 12,
+            "max_hp": 23,
+            "hit_dice": ["4d8"],
+            "saves": ["dex", "int"],
+            "speed": 30
+        },
+        "attacks": {
+            "rapier": 16,
+            "psychic_blades": 16
+        },
+        "actions": {
+            "inc_category":["rogue"],
+            "inc_action":["offhand_attack", "psychic_blades"]
+        },
+        "bias": {
+            "cunning_action_dodge":16
+        },
+        "property": {
+            "archetype": "soulknife",
+            "psionic_energy": "d6"
+        },
+        "resource": ["psionic_bonus", "psionic_energy"]
+    },
 
 
 
@@ -208,7 +281,7 @@
             "spear_2h": 16
         },
         "actions": {},
-        "instances": 6
+        "instances": 1
     },
 
 
@@ -264,6 +337,6 @@
             "slam custom_attacks.json": 16
         },
         "actions": {},
-        "instances": 3
+        "instances": 1
     }
 ]

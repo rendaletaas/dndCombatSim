@@ -9,37 +9,37 @@
         "climb":{
             "bias":0,
             "type":"movement",
-            "handle":"move"
+            "handle":"movement"
         },
         "crawl":{
             "bias":0,
             "type":"movement",
-            "handle":"move"
+            "handle":"movement"
         },
         "dash":{
             "bias":0,
             "type":"regular",
-            "handle":"stat"
+            "handle":"auto"
         },
         "death_save": {
             "bias":0,
             "type":"regular",
-            "handle":"special"
+            "handle":"auto"
         },
         "disengage":{
             "bias":0,
             "type":"regular",
-            "handle":"stat"
+            "handle":"auto"
         },
         "dodge":{
             "bias":0,
             "type":"regular",
-            "handle":"stat"
+            "handle":"auto"
         },
         "drop_prone":{
             "bias":0,
             "type":"movement",
-            "handle":"move"
+            "handle":"movement"
         },
         "escape_grapple":{
             "bias":0,
@@ -57,43 +57,38 @@
             "bias":0,
             "type":"regular",
             "targets":["ally"],
-            "handle":"stat"
+            "handle":"special"
         },
         "hide":{
             "bias":0,
             "type":"regular",
-            "handle":"stat"
+            "handle":"auto"
         },
         "high_jump":{
             "bias":0,
             "type":"movement",
-            "handle":"move"
+            "handle":"movement"
         },
         "long_jump":{
             "bias":0,
             "type":"movement",
-            "handle":"move"
+            "handle":"movement"
         },
         "long_rest":{
             "bias":0,
             "type":"special",
-            "handle":"special"
+            "handle":"auto"
         },
         "move":{
             "bias":16,
             "type":"movement",
-            "handle":"move"
+            "handle":"movement"
         },
         "move_while_grappling":{
             "bias":0,
             "type":"movement",
             "targets":["ally", "enemy"],
-            "handle":"move"
-        },
-        "nothing":{
-            "bias":0,
-            "type":"special",
-            "handle":"special"
+            "handle":"movement"
         },
         "opportunity_attack":{
             "bias":16,
@@ -109,7 +104,7 @@
         "short_rest":{
             "bias":0,
             "type":"special",
-            "handle":"special"
+            "handle":"auto"
         },
         "shove":{
             "bias":0,
@@ -117,15 +112,21 @@
             "targets":["enemy"],
             "handle":"attack"
         },
+        "stabilize":{
+            "bias":0,
+            "type":"regular",
+            "targets":["ally"],
+            "handle":"special"
+        },
         "stand_up":{
             "bias":0,
             "type":"movement",
-            "handle":"move"
+            "handle":"movement"
         },
         "swim":{
             "bias":0,
             "type":"movement",
-            "handle":"move"
+            "handle":"movement"
         }
     },
 
@@ -141,14 +142,12 @@
         "doff_shield":{
             "bias":0,
             "type":"regular",
-            "targets":["self"],
-            "handle":"stat"
+            "handle":"auto"
         },
         "don_shield":{
             "bias":0,
             "type":"regular",
-            "targets":["self"],
-            "handle":"stat"
+            "handle":"auto"
         },
         "offhand_attack":{
             "bias":16,
@@ -159,7 +158,7 @@
         "use_bardic_inspiration":{
             "bias":16,
             "type":"free",
-            "handle":"special"
+            "handle":"auto"
         }
     },
 
@@ -170,7 +169,18 @@
             "bias":16,
             "type":"bonus",
             "targets":["ally"],
-            "handle":"stat"
+            "handle":"special"
+        }
+    },
+
+
+
+    "cleric": {
+        "cd_turn_undead":{
+            "bias":0,
+            "type":"regular",
+            "targets":["enemy"],
+            "handle":"spell"
         }
     },
 
@@ -180,12 +190,12 @@
         "drop_wild_shape":{
             "bias":0,
             "type":"bonus",
-            "handle":"special"
+            "handle":"auto"
         },
         "wild_shape":{
             "bias":0,
-            "type":"action",
-            "handle":"special"
+            "type":"regular",
+            "handle":"auto"
         }
     },
 
@@ -206,12 +216,12 @@
         "action_surge":{
             "bias":0,
             "type":"free",
-            "handle":"stat"
+            "handle":"auto"
         },
         "second_wind":{
             "bias":0,
             "type":"bonus",
-            "handle":"stat"
+            "handle":"auto"
         },
         "extra_attack":{
             "bias":0,
@@ -230,6 +240,26 @@
             "type":"regular",
             "targets":["enemy"],
             "handle":"attack"
+        }
+    },
+
+
+
+    "rogue": {
+        "cunning_action_dash":{
+            "bias":0,
+            "type":"bonus",
+            "handle":"auto"
+        },
+        "cunning_action_disengage":{
+            "bias":0,
+            "type":"bonus",
+            "handle":"auto"
+        },
+        "cunning_action_hide":{
+            "bias":0,
+            "type":"bonus",
+            "handle":"auto"
         }
     },
 
@@ -254,6 +284,34 @@
         "bottled_respite":{
             "bias":0,
             "type":"regular",
+            "handle":"special"
+        },
+        "cd_radiance_of_the_dawn":{
+            "bias":0,
+            "type":"regular",
+            "targets":["enemy"],
+            "handle":"spell"
+        },
+        "psionic_energy_restore":{
+            "bias":0,
+            "type":"bonus",
+            "handle":"auto"
+        },
+        "psychic_blades":{
+            "bias":0,
+            "type":"regular",
+            "targets":["enemy"],
+            "handle":"attack"
+        },
+        "psychic_blades_offhand":{
+            "bias":0,
+            "type":"bonus",
+            "targets":["enemy"],
+            "handle":"attack"
+        },
+        "warding_flare":{
+            "bias":0,
+            "type":"reaction",
             "handle":"special"
         }
     }

@@ -1,4 +1,12 @@
 {
+    "radiance_of_the_dawn":{
+        "level": 0,
+        "school": "channel_divinity",
+        "cast": "regular",
+        "target": ["enemy"],
+        "concentration": false,
+        "duration": "instantaneous"
+    },
     "shillelagh":{
         "level": 0,
         "school": "enchantment",

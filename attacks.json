@@ -1,12 +1,39 @@
 [
     {
+        "name": "dagger",
+        "ability": "str",
+        "damagedice": ["1d4 str piercing"],
+        "type": ["dagger", "simple_weapon", "simple_melee_weapon"],
+        "hitmod": 0,
+        "multi": 1,
+        "properties": ["finesse, light"]
+    },
+    {
+        "name": "dagger_throw",
+        "ability": "str",
+        "damagedice": ["1d4 str piercing"],
+        "type": ["dagger", "simple_weapon", "simple_melee_weapon"],
+        "hitmod": 0,
+        "multi": 1,
+        "properties": ["finesse, light", "thrown 20/60"]
+    },
+    {
         "name": "handaxe",
-        "ability": "dex",
-        "damagedice": ["1d6 dex slashing"],
+        "ability": "str",
+        "damagedice": ["1d6 str slashing"],
         "type": ["handaxe", "simple_weapon", "simple_melee_weapon"],
         "hitmod": 0,
         "multi": 1,
         "properties": ["light", "monk_weapon"]
+    },
+    {
+        "name": "handaxe_throw",
+        "ability": "str",
+        "damagedice": ["1d6 str slashing"],
+        "type": ["handaxe", "simple_weapon", "simple_melee_weapon"],
+        "hitmod": 0,
+        "multi": 1,
+        "properties": ["light", "monk_weapon", "thrown 20/60"]
     },
     {
         "name": "longsword",
@@ -23,6 +50,50 @@
         "type": ["longsword", "martial_weapon", "martial_melee_weapon"],
         "hitmod": 0,
         "multi": 1
+    },
+    {
+        "name": "mace",
+        "ability": "str",
+        "damagedice": ["1d6 str bludgeoning"],
+        "type": ["mace", "simple_weapon", "simple_melee_weapon"],
+        "hitmod": 0,
+        "multi": 1
+    },
+    {
+        "name": "psychic_blades",
+        "ability": "str",
+        "damagedice": ["1d6 str psychic"],
+        "type": ["simple_weapon", "simple_melee_weapon"],
+        "hitmod": 0,
+        "multi": 1,
+        "properties": ["finesse", "light"]
+    },
+    {
+        "name": "psychic_blades_throw",
+        "ability": "str",
+        "damagedice": ["1d6 str psychic"],
+        "type": ["simple_weapon", "simple_melee_weapon"],
+        "hitmod": 0,
+        "multi": 1,
+        "properties": ["finesse", "light", "thrown 60/60"]
+    },
+    {
+        "name": "psychic_blades_offhand",
+        "ability": "str",
+        "damagedice": ["1d4 str psychic"],
+        "type": ["simple_weapon", "simple_melee_weapon"],
+        "hitmod": 0,
+        "multi": 1,
+        "properties": ["finesse", "light"]
+    },
+    {
+        "name": "psychic_blades_throw_offhand",
+        "ability": "str",
+        "damagedice": ["1d4 str psychic"],
+        "type": ["simple_weapon", "simple_melee_weapon"],
+        "hitmod": 0,
+        "multi": 1,
+        "properties": ["finesse", "light", "thrown 60/60"]
     },
     {
         "name": "quarterstaff",
@@ -49,6 +120,15 @@
         "type": ["quarterstaff", "simple_weapon", "simple_melee_weapon"],
         "hitmod": 0,
         "multi": 1
+    },
+    {
+        "name": "rapier",
+        "ability": "str",
+        "damagedice": ["1d8 str piercing"],
+        "type": ["rapier", "martial_weapon", "martial_melee_weapon"],
+        "hitmod": 0,
+        "multi": 1,
+        "properties": ["finesse"]
     },
     {
         "name": "scimitar",
